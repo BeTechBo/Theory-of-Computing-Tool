@@ -88,6 +88,7 @@ export function solveSubsetConstruction(nfa, notes = {}) {
     rows[name] = {};
     const lines = [];
     const fresh = [];
+    let quiz = null;
 
     S.forEach(a => {
       const union = new Set();
@@ -101,6 +102,19 @@ export function solveSubsetConstruction(nfa, notes = {}) {
         fresh.push(tName);
       }
       rows[name][a] = tName;
+      // Quiz on the first move of the row (prefer one that makes a new subset).
+      // Wrong options are real mistakes: forgetting a member of the union, or ∅.
+      if (set.length && (!quiz || (isNew && !quiz.isNew))) {
+        const options = new Set([tName, ...set.map(q => fmt(moveOf(q, a))), EMPTY, ...discovered.slice(0, 3)]);
+        quiz = {
+          isNew,
+          question: `What is ${name} on ${a}?`,
+          answer: tName,
+          options: [...options].slice(0, 4).sort(),
+          why: `Take the union of every member's move: ${set.map(q => `δ(${q}, ${a}) = ${fmt(moveOf(q, a))}`).join(', ')}, so the answer is ${tName}.`
+        };
+        if (!quiz.options.includes(tName)) quiz.options[3] = tName;
+      }
 
       let working;
       if (set.length === 0) {
@@ -134,6 +148,7 @@ export function solveSubsetConstruction(nfa, notes = {}) {
       highlight_cells: cells,
       graph: machineToDot(dfaSoFar(i + 1)),
       highlight: [name, ...fresh],
+      quiz: quiz && { question: quiz.question, answer: quiz.answer, options: quiz.options, why: quiz.why },
       extra: {}
     });
   }

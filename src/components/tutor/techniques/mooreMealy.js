@@ -133,7 +133,14 @@ export function solveMooreMealy(M, strings = []) {
   words.forEach(w => {
     const r = isMoore ? runMoore(M, w) : runMealy(M, w);
     runs[w] = r.output;
+    const len = isMoore ? w.length + 1 : w.length;
     steps.push({
+      quiz: {
+        question: `How many symbols will the output on "${show(w)}" have?`,
+        answer: String(len),
+        options: [...new Set([w.length - 1, w.length, w.length + 1].filter(x => x >= 0).map(String))],
+        why: isMoore ? `Moore prints λ(q0) before reading anything, then one per symbol: |w| + 1 = ${len}.` : `Mealy prints one symbol per arrow: |w| = ${len}.`
+      },
       title: `Run on "${show(w)}"`,
       explain: 'State the output length first, then write one move per line.',
       lines: [`|w| = ${w.length}, so the output has ${isMoore ? w.length + 1 : w.length} symbols`, ...r.lines, `output = ${r.output}`],
@@ -243,3 +250,7 @@ function defaultWords(alphabet) {
   const b = alphabet[1] || alphabet[0];
   return [`${a}${b}${a}${b}`, `${b}${a}${a}`];
 }
+
+export const transducerDot = dot;
+export const transducerToTable = M =>
+  table(M).map(r => r.join(' | ')).join('\n');

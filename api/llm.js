@@ -4,7 +4,7 @@
 // middleware in development (see vite.config.js).
 
 import { askLLM, llmStatus } from './_lib/llm.js';
-import { ANALYZE, EXPLAIN } from './_lib/prompts.js';
+import { ANALYZE, EXPLAIN, CHECK } from './_lib/prompts.js';
 import { SESSION_MAP, relevantNotes } from './_lib/courseNotes.js';
 
 const TECHNIQUE_SESSION = { dfa_trace: 'S01 dfa trace', dfa_design: 'S02 design', min_table: 'S03 minimise', min_partition: 'S03 minimise', subset_construction: 'S04 nfa subset', eps_closure: 'S05 ε-closure', eps_removal: 'S06 ε-removal', moore_mealy: 'S07 moore mealy' };
@@ -75,6 +75,23 @@ export default async function handler(req, res) {
         `Accepted (shortest first): ${accepted.map(w => (w === '' ? 'ε' : w)).join(', ') || 'none'}\n` +
         `Rejected (shortest first): ${rejected.map(w => (w === '' ? 'ε' : w)).join(', ') || 'none'}`;
       return send(200, await askLLM({ system: withNotes(EXPLAIN, TECHNIQUE_SESSION[technique] || technique), messages: [{ role: 'user', content }] }));
+    }
+
+    if (body.task === 'check') {
+      const { message = '', technique = null, machineTable = null, transducerTable = null } = body;
+      const images = (Array.isArray(body.images) ? body.images : [])
+        .slice(0, MAX_IMAGES)
+        .filter(i => ALLOWED_TYPES.includes(i?.mimeType) && typeof i.data === 'string' && i.data.length < MAX_IMAGE_B64);
+      if (!message.trim() && !images.length) return send(400, { error: 'Send your answer as text or a picture.' });
+      if (message.length > MAX_CHARS) return send(400, { error: 'That answer is too long for me. Try a shorter one.' });
+      const content = [
+        technique ? `Technique: ${technique}` : 'Technique: decide from the work',
+        machineTable ? `Question machine:\n${machineTable}` : '',
+        transducerTable ? `Question machine (Moore/Mealy):\n${transducerTable}` : '',
+        images.length ? `The student attached ${images.length} picture(s) of their work.` : '',
+        `Student's message:\n${message || '(see the pictures)'}`
+      ].filter(Boolean).join('\n\n');
+      return send(200, await askLLM({ system: CHECK, messages: [{ role: 'user', images, content }] }));
     }
 
     return send(400, { error: 'Unknown task.' });

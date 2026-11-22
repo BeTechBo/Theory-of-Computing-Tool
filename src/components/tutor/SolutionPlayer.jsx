@@ -7,12 +7,31 @@ const h3 = 'text-xs font-semibold uppercase tracking-wide text-slate-500 dark:te
 
 // Renders one answer in the shared JSON contract (plan §4), whoever produced it:
 // our code generators or the LLM.
-export default function SolutionPlayer({ solution, checks = [], keyboard = true }) {
+export default function SolutionPlayer({ solution, checks = [], keyboard = true, quizDefault = false }) {
   // ?step=N opens a given step and ?all=1 shows every step (handy for the demo script)
   const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const [idx, setIdx] = useState(() => Math.max(0, Math.min((solution.steps?.length || 1) - 1, Number(params.get('step') || 1) - 1)));
   const [showAll, setShowAll] = useState(params.get('all') === '1');
   const steps = solution.steps || [];
+  // Quiz mode: before showing a step that has a quiz, ask it first.
+  const [quizOn, setQuizOn] = useState(quizDefault);
+  const [asking, setAsking] = useState(null); // index of the step being asked about
+  const [picks, setPicks] = useState({}); // step index -> chosen option
+  const hasQuizzes = steps.some(s => s.quiz);
+  const answered = Object.keys(picks).length;
+  const right = Object.entries(picks).filter(([i, o]) => steps[i]?.quiz?.answer === o).length;
+
+  const goNext = () => {
+    if (asking !== null) return;
+    const n = idx + 1;
+    if (n >= steps.length) return;
+    if (quizOn && steps[n].quiz && !(n in picks)) setAsking(n);
+    else setIdx(n);
+  };
+  const reveal = () => {
+    setIdx(asking);
+    setAsking(null);
+  };
 
   const firstSolution = React.useRef(solution);
   useEffect(() => {
@@ -23,12 +42,12 @@ export default function SolutionPlayer({ solution, checks = [], keyboard = true 
   useEffect(() => {
     const onKey = e => {
       if (!keyboard || showAll || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-      if (e.key === 'ArrowRight') setIdx(i => Math.min(steps.length - 1, i + 1));
-      if (e.key === 'ArrowLeft') setIdx(i => Math.max(0, i - 1));
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft' && asking === null) setIdx(i => Math.max(0, i - 1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [steps.length, showAll, keyboard]);
+  });
 
 
   const shown = showAll ? steps.map((s, i) => [s, i]) : [[steps[idx], idx]];
@@ -49,14 +68,28 @@ export default function SolutionPlayer({ solution, checks = [], keyboard = true 
             {showAll ? `all ${steps.length} steps` : `step ${idx + 1} / ${steps.length}`}
           </span>
           <button
-            onClick={() => setIdx(i => Math.min(steps.length - 1, i + 1))}
-            disabled={showAll || idx === steps.length - 1}
+            onClick={goNext}
+            disabled={showAll || idx === steps.length - 1 || asking !== null}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold disabled:opacity-40 transition"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
         </div>
         <div className="flex items-center gap-3">
+          {hasQuizzes && !showAll && (
+            <button
+              onClick={() => {
+                setQuizOn(q => !q);
+                setAsking(null);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                quizOn ? 'bg-violet-600 border-violet-600 text-white' : 'border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100'
+              }`}
+              title="Guess each step before you see it"
+            >
+              🤔 {quizOn ? `Quiz on · ${right}/${answered}` : 'Quiz me'}
+            </button>
+          )}
           {!showAll && (
             <div className="hidden sm:flex gap-1">
               {steps.map((_, i) => (
@@ -80,6 +113,17 @@ export default function SolutionPlayer({ solution, checks = [], keyboard = true 
 
       {/* The step(s) */}
       {shown.map(([step, i]) => step && <StepCard key={i} step={step} number={i + 1} />)}
+
+      {/* Quiz: guess the next step before seeing it */}
+      {asking !== null && (
+        <QuizCard
+          quiz={steps[asking].quiz}
+          number={asking + 1}
+          picked={picks[asking]}
+          onPick={o => setPicks(p => ({ ...p, [asking]: o }))}
+          onReveal={reveal}
+        />
+      )}
 
       {/* Tests + self-check + summary, after the last step */}
       {(showAll || idx === steps.length - 1) && (
@@ -223,6 +267,45 @@ function StepCard({ step, number }) {
               <GraphView dot={step.graph} highlight={step.highlight || []} />
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuizCard({ quiz, number, picked, onPick, onReveal }) {
+  const done = picked !== undefined;
+  const correct = picked === quiz.answer;
+  return (
+    <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/70 p-5 animate-pop">
+      <p className="text-xs font-semibold uppercase tracking-wide text-violet-600 mb-1">🤔 Guess step {number} before you see it</p>
+      <p className="font-serif text-lg font-bold text-slate-900 mb-3">{quiz.question}</p>
+      <div className="flex flex-wrap gap-2">
+        {quiz.options.map(o => {
+          const isAns = o === quiz.answer;
+          const style = !done
+            ? 'bg-white border-violet-200 hover:border-violet-400 hover:bg-violet-100'
+            : isAns
+            ? 'bg-emerald-100 border-emerald-400 text-emerald-900'
+            : o === picked
+            ? 'bg-rose-100 border-rose-400 text-rose-900'
+            : 'bg-white border-slate-200 opacity-50';
+          return (
+            <button key={o} disabled={done} onClick={() => onPick(o)} className={`px-4 py-2 rounded-xl border-2 font-mono text-sm font-semibold transition active:scale-95 ${style}`}>
+              {o}
+            </button>
+          );
+        })}
+      </div>
+      {done && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <p className={`text-sm font-semibold ${correct ? 'text-emerald-700' : 'text-rose-700'}`}>
+            {correct ? '✓ Correct! ' : `✗ Not quite: it's ${quiz.answer}. `}
+            <span className="font-normal text-slate-700">{quiz.why}</span>
+          </p>
+          <button onClick={onReveal} className="ml-auto px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold">
+            See the step →
+          </button>
         </div>
       )}
     </div>

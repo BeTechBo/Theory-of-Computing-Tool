@@ -34,7 +34,15 @@ function closures(m) {
 }
 
 function closureStep(m, cl, lines) {
+  const oneHop = sortStates(new Set([m.start, ...(m.delta[m.start][EPS] || [])]), m.states);
+  const noSelf = cl[m.start].filter(q => q !== m.start);
   return {
+    quiz: {
+      question: `What is ε-CL(${m.start})?`,
+      answer: setName(cl[m.start]),
+      options: [...new Set([setName(cl[m.start]), setName(oneHop), setName(noSelf), `{${m.start}}`])].sort(),
+      why: `Follow ε-arrows to the end of every chain, and always include ${m.start} itself: ${setName(cl[m.start])}.`
+    },
     title: 'The ε-closure of every state',
     explain:
       'ε-CL(q) is every state you can reach from q for free, using ε-arrows only. It always contains q itself, and it follows chains to the end.',
@@ -117,7 +125,20 @@ export function solveEpsRemoval(m, notes = {}) {
     if (seenRows[key]) ls.push(`same closure as ${seenRows[key]}, so the same row`);
     else seenRows[key] = q;
     rows.push(q);
+    // Quiz on the symbol with the most tempting wrong answers; skip if there is no real choice.
+    const quizFor = a => {
+      const mv = move(cl[q], a);
+      const options = [...new Set([setName(dp[q][a]), setName(mv), setName(close(move([q], a))), setName(cl[q]), EMPTY])].sort();
+      return {
+        question: `What is δ′(${q},${a})?`,
+        answer: setName(dp[q][a]),
+        options: options.slice(0, 4).includes(setName(dp[q][a])) ? options.slice(0, 4) : [...options.slice(0, 3), setName(dp[q][a])].sort(),
+        why: `Close, move, close: ε-CL(δ(${setName(cl[q])}, ${a})) = ε-CL(${setName(mv)}) = ${setName(dp[q][a])}.${setName(mv) !== setName(dp[q][a]) ? ` Forgetting the last closure gives ${setName(mv)}.` : ''}`
+      };
+    };
+    const best = S.map(quizFor).sort((x, y) => (y.answer !== EMPTY) - (x.answer !== EMPTY) || y.options.length - x.options.length)[0];
     steps.push({
+      quiz: best && best.options.length >= 2 ? best : undefined,
       title: `δ′ for ${q}`,
       explain:
         i === 0
@@ -139,7 +160,16 @@ export function solveEpsRemoval(m, notes = {}) {
   const hit = cl[m.start].filter(q => m.final.includes(q));
   const addStart = hit.length > 0 && !m.final.includes(m.start);
   const Fp = sortStates(new Set([...m.final, ...(hit.length ? [m.start] : [])]), m.states);
+  const mixed = sortStates(new Set([...m.final, ...m.states.filter(q => cl[q].some(x => m.final.includes(x)))]), m.states);
   steps.push({
+    quiz: {
+      question: 'What is F′?',
+      answer: setName(Fp),
+      options: [...new Set([setName(Fp), setName(m.final), setName(mixed)])].sort(),
+      why: hit.length
+        ? `F plus the start state only, because ε-CL(${m.start}) contains ${hit.join(', ')}. Adding every state whose closure meets F is the other method's rule.`
+        : `ε-CL(${m.start}) contains no accepting state, so no patch: F′ = F.`
+    },
     title: "F′: this is where the marks are",
     explain:
       'F′ = F, plus the start state if its closure contains an accepting state. Nothing else is added: δ′ already closes after every move, so the only moment it never sees is before the first symbol, the empty string.',

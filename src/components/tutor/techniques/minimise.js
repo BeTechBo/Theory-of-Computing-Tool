@@ -102,8 +102,18 @@ export function solveMinimise(input, method = 'table', notes = {}) {
         }
       });
       const done = split.length === 0;
+      const before = blocks;
+      const multi = before.map((b, i) => [b, i]).filter(([b]) => b.length > 1);
+      const firstSplit = multi.find(([b]) => !next.some(n => n.length === b.length && n.every(q => b.includes(q))));
+      const quiz = {
+        question: `Round ${round}: which block splits?`,
+        answer: firstSplit ? `${letter(firstSplit[1])} = ${setName(firstSplit[0])}` : 'nothing splits',
+        options: [...multi.map(([b, i]) => `${letter(i)} = ${setName(b)}`), 'nothing splits'],
+        why: done ? 'Every state in each block has the same signature, so nothing splits and we stop.' : split[0]
+      };
       blocks = next;
       steps.push({
+        quiz,
         title: `${prefix}Round ${round}${done ? ': nothing splits. Stop' : ''}`,
         explain: done
           ? 'No block has states with different signatures, so the partition is final. Each block becomes one state.'
@@ -170,7 +180,14 @@ export function solveMinimise(input, method = 'table', notes = {}) {
       newly.forEach(([p, q, w]) => (mark[key(p, q)] = { pass, witness: w }));
       const unmarked = pairs.filter(([p, q]) => !mark[key(p, q)]);
       const done = newly.length === 0;
+      const n = newly.length;
       steps.push({
+        quiz: {
+          question: `Pass ${pass}: how many new pairs get crossed?`,
+          answer: String(n),
+          options: [...new Set([n, n + 1, Math.max(0, n - 1), n + 2].map(String))].sort((x, y) => x - y),
+          why: n ? `${newly.map(([p, q, w]) => `(${p},${q}) with witness "${w}"`).join(', ')}.` : 'None: every uncrossed pair only leads to uncrossed pairs or to one state, so we stop.'
+        },
         title: `${prefix}Pass ${pass}${done ? ': nothing new is crossed. Stop' : ''}`,
         explain: done
           ? 'A pass crossed nothing new, so no further pair can ever be crossed. The uncrossed pairs are equivalent.'

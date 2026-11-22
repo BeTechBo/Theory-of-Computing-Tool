@@ -33,7 +33,7 @@ GUARDRAILS (always follow):
 
 Return ONLY one JSON object:
 {
-  "intent": "solve" | "question" | "unsupported",
+  "intent": "solve" | "question" | "check" | "unsupported",
   "technique": one of ${JSON.stringify(TECHNIQUE_IDS)} or null,
   "machine": null or {"states": [...], "alphabet": [...], "start": "q0", "final": [...], "delta": {"q0": {"a": ["q1"], "b": []}}},
   "strings": ["..."],
@@ -58,6 +58,7 @@ Rules:
 - Moore or Mealy machines (machines with output): technique "moore_mealy", fill "transducer" (machine null). The input strings go in "strings".
 - "strings": every test string the student mentions; use "" for ε.
 - "question": a concept question (definitions, why a step works, comparing methods, a hint). Fill "answer" (not "reply"). Give an example machine whenever a small one (2–4 states) makes the idea clearer; for comparisons (e.g. DFA vs NFA) give one machine for each side, recognising the same language. Keep "explain" lines short. If the student wants a whole exercise solved but gave no machine, ask for it in "short" and leave the rest empty.
+- "check": the student shows THEIR OWN attempt or answer (typed or in a picture) and wants to know if it is right or where they went wrong ("did I do this right?", "where did I mess up", "is my answer correct"). Do not mark it yourself: code will. Just set intent "check" and the technique.
 - "unsupported": put the kind redirect in "reply".
 - The student may attach pictures: a hand-drawn or printed state diagram, a transition table, or a photo/screenshot of an exam question. In a diagram, the state with an arrow coming from nowhere is the start state, double circles are accepting states, and an arrow labelled "a,b" means one transition per symbol.
 - Students type symbols loosely: "e", "eps", "epsilon" or "lambda" mean ε; "phi", "empty" or "{}" mean ∅; "->" or ">" marks the start state; "*" or "(final)" marks accepting states.
@@ -78,4 +79,28 @@ Return ONLY one JSON object:
 - One fact per state, in the order given. A dead state (∅ or one that can never accept) gets a fact like "every path has died; nothing can be accepted any more".
 - The language sentence must agree with the accepted/rejected lists.
 Example fact: {"item": "{m0,m1}", "meaning": "an a has been seen, but no b has followed it yet"}
+`.trim();
+
+export const CHECK = `
+You read a CSCE 4201 student's ATTEMPT at an exercise (typed and/or in pictures) so that code can mark it.
+Copy what the student wrote EXACTLY, including their mistakes. Never correct, complete or improve their work: if they wrote a wrong set, copy the wrong set. If a part is missing, leave it out. If something is unreadable, list it in "unreadable".
+Students write loosely: "e"/"eps"/"epsilon"/"λ" mean ε; "phi"/"empty"/"{}" mean ∅; "->" marks the start state; "*" marks accepting states.
+
+Return ONLY one JSON object:
+{
+  "technique": one of ["subset_construction","min_table","min_partition","eps_closure","eps_removal","dfa_trace","dfa_design","moore_mealy"],
+  "machine": the QUESTION's machine if it is shown and no "Question machine" is given below, else null — {"states":[...],"alphabet":[...],"start":"q0","final":[...],"delta":{"q0":{"a":["q1"]}}} (use "ε" for ε-moves),
+  "transducer": the QUESTION's Moore/Mealy machine if shown and none is given below, else null — {"type":"moore"|"mealy","states":[...],"alphabet":[...],"start":"q0","delta":{"q0":{"a":"q1"}},"out": moore {"q0":"0"} | mealy {"q0":{"a":"0"}}},
+  "language_regex": for a DESIGN question only: a regular expression for the language the QUESTION describes (not the student's machine), using | * + ( ) ε ∅ and symbols of Σ; else null,
+  "student": the student's answer in the shape for the technique:
+    subset_construction: {"rows":[{"subset":["q0","q1"],"moves":{"a":["q0"],"b":[]}}],"accepting":[["q0","q1"]]}
+    min_table / min_partition: {"classes":[["s0"],["s1","s3"]]}   (their FINAL blocks / merged groups; every state they kept)
+    eps_closure: {"closures":{"q0":["q0","q1"]}}
+    eps_removal: {"closures":{"q0":["q0","q1"]},"delta":{"q0":{"a":["q2"]}},"final":["q0","q3"]}
+    dfa_trace: {"traces":[{"input":"aab","accepted":true}]}   ("" for ε)
+    dfa_design: {"machine":{"states":[...],"alphabet":[...],"start":"q0","final":[...],"delta":{"q0":{"a":["q1"]}}}}
+    moore_mealy: {"runs":[{"input":"abab","output":"N N Y N Y"}]}
+  "unreadable": ["parts you could not read"]
+}
+Use empty arrays [] for ∅. Write sets as arrays of state names.
 `.trim();

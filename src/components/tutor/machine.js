@@ -188,12 +188,13 @@ export function machineToDot(m, opts = {}) {
 
 // Course-style text table (the same format the parser reads).
 export function machineToTable(m) {
+  const dfa = isDfa(m) && m.states.every(q => m.alphabet.every(a => (m.delta[q]?.[a] || []).length === 1));
   const head = ['state', ...m.alphabet];
   const rows = m.states.map(q => [
     `${q === m.start ? '→ ' : ''}${m.final.includes(q) ? '* ' : ''}${q}`,
     ...m.alphabet.map(a => {
       const t = m.delta[q]?.[a] || [];
-      return t.length === 0 ? EMPTY : `{${t.join(', ')}}`;
+      return t.length === 0 ? EMPTY : dfa ? t[0] : `{${t.join(', ')}}`;
     })
   ]);
   return [head, ...rows].map(r => r.join(' | ')).join('\n');
@@ -203,7 +204,13 @@ export function machineToTable(m) {
 export function normalizeMachine(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('No machine found.');
   const states = (obj.states || []).map(String);
-  const alphabet = (obj.alphabet || []).map(a => (a === '' || a === 'eps' || a === 'λ' ? EPS : String(a)));
+  // Every way people (and the AI) write ε. The delta keys may use any of them too.
+  const EPS_NAMES = ['', 'ε', 'eps', 'e', 'epsilon', 'λ', 'lambda', 'Λ'];
+  const isEps = a => EPS_NAMES.includes(String(a).trim().toLowerCase()) || String(a) === 'Λ';
+  const rawAlphabet = (obj.alphabet || []).map(String);
+  const alphabet = [...new Set(rawAlphabet.map(a => (isEps(a) ? EPS : a)))];
+  // ε-moves may appear in delta even if ε is missing from the alphabet
+  if (!alphabet.includes(EPS) && Object.values(obj.delta || {}).some(row => Object.keys(row || {}).some(isEps))) alphabet.push(EPS);
   const start = String(obj.start ?? '');
   const final = (obj.final || []).map(String);
   if (!states.length) throw new Error('The machine has no states.');
@@ -216,8 +223,13 @@ export function normalizeMachine(obj) {
   states.forEach(q => {
     delta[q] = {};
     alphabet.forEach(a => {
-      const raw = obj.delta?.[q]?.[a] ?? (a === EPS ? obj.delta?.[q]?.[''] : undefined) ?? [];
-      const arr = (Array.isArray(raw) ? raw : [raw]).map(String).filter(Boolean);
+      const row = obj.delta?.[q] || {};
+      const keys = a === EPS ? Object.keys(row).filter(isEps) : [a];
+      const arr = keys
+        .flatMap(k => (Array.isArray(row[k]) ? row[k] : row[k] == null ? [] : [row[k]]))
+        .map(String)
+        .map(t => t.trim())
+        .filter(t => t && t !== EMPTY && !/^(phi|empty|none|-)$/i.test(t));
       arr.forEach(t => {
         if (!states.includes(t)) throw new Error(`δ(${q}, ${a}) goes to ${t}, which is not a state.`);
       });

@@ -6,6 +6,7 @@ import SolutionPlayer from '../tutor/SolutionPlayer';
 import { FOLLOW_UPS } from './suggestions.js';
 import GraphView from '../tutor/GraphView';
 import { machineToDot } from '../tutor/machine.js';
+import { transducerDot } from '../tutor/techniques/mooreMealy.js';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 // Tiny, safe formatter: **bold**, `code`, "- " bullets, ``` blocks. Builds React
@@ -129,10 +130,39 @@ export function BotMessage({ msg, latest, onAction }) {
       <div className="min-w-0 flex-1 space-y-3">
         {msg.kind === 'answer' ? (
           <AnswerCard answer={msg.answer} />
+        ) : msg.kind === 'practice' ? (
+          <PracticeCard practice={msg.practice} text={msg.text} />
+        ) : msg.kind === 'check' ? (
+          <CheckCard result={msg.result} unreadable={msg.unreadable} celebrate={latest && msg.celebrate} />
         ) : (
           <div className="relative inline-block max-w-full rounded-3xl rounded-tl-lg bg-white border-2 border-slate-100 px-4 py-2.5 font-round text-[15px] text-slate-700 shadow-sm">
             {latest && msg.celebrate && <Confetti />}
             <RichText text={msg.text} />
+          </div>
+        )}
+
+        {/* Buttons for practice exercises and marked answers */}
+        {latest && msg.kind === 'practice' && (
+          <div className="flex flex-wrap gap-2">
+            <Chip color="teal" onClick={() => onAction({ type: 'checkPrompt' })}>📸 Check my answer</Chip>
+            <Chip color="violet" onClick={() => onAction({ type: 'say', text: 'Show the solution' })}>👀 Show the solution</Chip>
+            <Chip color="amber" onClick={() => onAction({ type: 'say', text: 'Another one' })}>🎲 Another one</Chip>
+          </div>
+        )}
+        {latest && msg.kind === 'check' && (
+          <div className="flex flex-wrap gap-2">
+            <Chip color="violet" onClick={() => onAction({ type: 'say', text: 'Show the solution' })}>👀 Show the correct solution</Chip>
+            <Chip color="teal" onClick={() => onAction({ type: 'checkPrompt' })}>📸 Check again</Chip>
+            <Chip color="amber" onClick={() => onAction({ type: 'say', text: 'Another one' })}>🎲 Another exercise</Chip>
+          </div>
+        )}
+        {latest && msg.actions?.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {msg.actions.map((a, i) => (
+              <Chip key={a.label} color={['teal', 'pink', 'violet', 'amber', 'sky'][i % 5]} onClick={() => onAction({ type: 'say', text: a.say })}>
+                {a.label}
+              </Chip>
+            ))}
           </div>
         )}
 
@@ -150,7 +180,7 @@ export function BotMessage({ msg, latest, onAction }) {
         {msg.kind === 'solution' && (
           <>
             <div className="rounded-3xl border-2 border-slate-100 bg-slate-50/60 p-3 sm:p-4">
-              <SolutionPlayer solution={msg.solution} checks={msg.checks} keyboard={latest} />
+              <SolutionPlayer solution={msg.solution} checks={msg.checks} keyboard={latest} quizDefault={Boolean(msg.quiz)} />
             </div>
             {msg.explainState === 'loading' && (
               <p className="flex items-center gap-1.5 text-xs font-round text-violet-600">
@@ -262,6 +292,84 @@ function AnswerCard({ answer }) {
 
       {answer.session && (
         <p className="text-xs font-bold text-slate-400">📚 Taught in Session {Number(answer.session.slice(1))}</p>
+      )}
+    </div>
+  );
+}
+
+// A fresh practice exercise made by code.
+function PracticeCard({ practice, text }) {
+  const dot = practice.transducer ? transducerDot(practice.transducer) : machineToDot(practice.machine);
+  return (
+    <div className="rounded-3xl rounded-tl-lg bg-gradient-to-br from-amber-50 to-white border-2 border-amber-100 px-5 py-4 font-round text-[15px] text-slate-700 shadow-sm space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">🎲 Practice exercise</p>
+      <div className="text-slate-900 font-semibold"><RichText text={text} /></div>
+      <div className="grid md:grid-cols-2 gap-3 items-center">
+        <pre className="font-mono text-[13px] bg-white border border-slate-200 rounded-xl px-3 py-2 overflow-x-auto whitespace-pre">{practice.table}</pre>
+        <div className="rounded-xl bg-white border border-slate-200 p-2"><GraphView dot={dot} /></div>
+      </div>
+      <p className="text-sm text-slate-500">Try it on paper first. Then send me a photo of your work (📸 Check my answer) and I'll find your first mistake and estimate your mark.</p>
+    </div>
+  );
+}
+
+// The result of "Check my answer": estimated marks, the first mistake, what was right.
+function CheckCard({ result, unreadable = [], celebrate }) {
+  const full = result.score === result.total;
+  const pct = result.total ? result.score / result.total : 0;
+  const ring = pct >= 0.85 ? 'border-emerald-400 text-emerald-700 bg-emerald-50' : pct >= 0.5 ? 'border-amber-400 text-amber-700 bg-amber-50' : 'border-rose-400 text-rose-700 bg-rose-50';
+  const m = result.firstMistake;
+  return (
+    <div className="relative rounded-3xl rounded-tl-lg bg-white border-2 border-slate-100 px-5 py-4 font-round text-[15px] text-slate-700 shadow-sm space-y-4">
+      {celebrate && <Confetti />}
+      <div className="flex items-center gap-4">
+        <div className={`shrink-0 w-20 h-20 rounded-full border-4 flex flex-col items-center justify-center ${ring}`}>
+          <span className="font-fun text-2xl font-semibold leading-none">{result.score}</span>
+          <span className="text-xs font-bold">/ {result.total}</span>
+        </div>
+        <div>
+          <p className="font-fun text-xl text-slate-900">{full ? 'Full marks! 🎉' : m ? 'Good try, one thing to fix first' : 'Checked'}</p>
+          <p className="text-xs text-slate-500">Estimated mark, split the way the model answers split it. Your instructor's marking decides.</p>
+        </div>
+      </div>
+
+      {m && (
+        <div className="rounded-2xl border-2 border-rose-200 bg-rose-50 px-4 py-3 space-y-1.5">
+          <p className="text-xs font-bold uppercase tracking-wide text-rose-700">First mistake: {m.where}</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-sm">
+            <span>You wrote: <b className="text-rose-700">{m.yours}</b></span>
+            <span>Correct: <b className="text-emerald-700">{m.correct}</b></span>
+          </div>
+          <div className="text-sm text-slate-700"><RichText text={m.why} /></div>
+          {result.otherMistakes > 0 && <p className="text-xs text-rose-600">+{result.otherMistakes} more {result.otherMistakes === 1 ? 'mistake' : 'mistakes'} after this one. Fix this first: later mistakes often come from it.</p>}
+        </div>
+      )}
+
+      {result.right.length > 0 && (
+        <ul className="space-y-1">
+          {result.right.map((r, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm text-emerald-800"><CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" /> {r}</li>
+          ))}
+        </ul>
+      )}
+
+      <div className="space-y-1.5">
+        {result.breakdown.map((b, i) => (
+          <div key={i} className="flex items-center gap-3 text-sm">
+            <span className="w-56 shrink-0 text-slate-600">{b.part}</span>
+            <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className={`h-full rounded-full ${b.got === b.max ? 'bg-emerald-400' : b.got > 0 ? 'bg-amber-400' : 'bg-rose-300'}`} style={{ width: `${(100 * b.got) / b.max}%` }} />
+            </div>
+            <span className="w-14 text-right font-mono text-xs font-bold text-slate-700">{b.got}/{b.max}</span>
+          </div>
+        ))}
+      </div>
+
+      {(result.notChecked.length > 0 || unreadable.length > 0) && (
+        <p className="text-xs text-slate-500">
+          {result.notChecked.length > 0 && <>Not checked: {result.notChecked.join('; ')}. </>}
+          {unreadable.length > 0 && <>Couldn't read: {unreadable.join('; ')}.</>}
+        </p>
       )}
     </div>
   );

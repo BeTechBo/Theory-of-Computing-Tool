@@ -13,7 +13,7 @@ const STORE = 'stately.chats.v1';
 
 const SUGGESTIONS = [
   { emoji: '🏁', title: 'NFA → DFA', sub: 'The Subset Race from Session 4', color: 'from-teal-100 to-emerald-50 border-teal-200', send: SUBSET_PRESETS[0].table },
-  { emoji: '🕳️', title: 'A DFA with a dead state', sub: 'Session 4, Question 2', color: 'from-pink-100 to-rose-50 border-pink-200', send: SUBSET_PRESETS[2].table },
+  { emoji: '🎲', title: 'Practice', sub: 'A fresh exercise, then I mark your photo', color: 'from-pink-100 to-rose-50 border-pink-200', send: 'practice' },
   {
     emoji: '🧮',
     title: 'Test some strings',
@@ -92,7 +92,7 @@ export default function ChatApp() {
     let result;
     try {
       const [r] = await Promise.all([
-        respond({ text, images: pics.map(({ mimeType, data }) => ({ mimeType, data })), technique: 'auto', machine: chat.machine, llmOn: ai.configured, history }),
+        respond({ text, images: pics.map(({ mimeType, data }) => ({ mimeType, data })), machine: chat.machine, practice: chat.practice || null, llmOn: ai.configured, history }),
         new Promise(res => setTimeout(res, 450)) // let Stately "think" for a moment
       ]);
       result = r;
@@ -103,6 +103,7 @@ export default function ChatApp() {
     updateChat(id, c => ({
       ...c,
       machine: result.machine !== undefined ? result.machine : c.machine,
+      practice: result.practice !== undefined ? result.practice : c.practice,
       messages: [...c.messages.filter(m => m.kind !== 'typing'), ...stamped]
     }));
     setBusy(false);
@@ -139,6 +140,9 @@ export default function ChatApp() {
     if (action.type === 'test') {
       setInput('test ');
       inputRef.current?.focus();
+    } else if (action.type === 'checkPrompt') {
+      setInput('Check my answer');
+      fileRef.current?.click(); // pick the photo of your work
     } else if (action.type === 'say') {
       send(action.text);
     } else if (action.type === 'ask') {

@@ -95,6 +95,12 @@ export function solveTrace(m, strings, notes = {}) {
       pathText = path.join(' → ');
     }
     steps.push({
+      quiz: {
+        question: `Before you look: is "${show(w)}" accepted?`,
+        answer: ok ? 'accepted' : 'rejected',
+        options: ['accepted', 'rejected'],
+        why: lines[lines.length - 1]
+      },
       title: `Trace "${show(w)}"`,
       explain:
         w === ''

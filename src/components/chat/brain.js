@@ -16,7 +16,14 @@ import { looksLikeTransducer, parseTransducer, solveMooreMealy } from '../tutor/
 import { solveDesign } from '../tutor/techniques/dfaDesign.js';
 import { validateContract, selfCheck } from '../tutor/checks.js';
 import { SUBSET_PRESETS, TECHNIQUES } from '../tutor/presets.js';
-import { analyze } from './llmClient.js';
+import { analyze, readAttempt } from './llmClient.js';
+import { makePractice, PRACTICE_TOPICS } from '../tutor/practice.js';
+import { checkStudent } from '../tutor/checker.js';
+import { transducerToTable } from '../tutor/techniques/mooreMealy.js';
+
+const PRACTICE_RE = /\b(practi[cs]e|exercise|drill)\b|\bquiz me\b|\btest me\b|give me (a|an|another|one more) (question|problem|exercise)|^\s*(another|one more)( one| question| exercise)?\s*[.!]?\s*$/i;
+const SHOW_RE = /show (me )?(the )?(full |correct )?(solution|answer|steps)|\breveal\b|solve it( for me)?|i give up/i;
+const CHECK_RE = /did i (do|get|solve) (this|it|that)( \w+)? (right|correct|wrong)|where did i (go wrong|mess up)|(am i|is (this|that|it)) (right|correct)\?|check (my|this|the) (answer|solution|work|attempt|homework)|^check (it|mine)\s*[.!]?$|(grade|mark|correct) (my|this)|is (this|my answer|my solution) (right|correct)|^(here'?s|here is|this is) my (answer|solution|attempt|work)/i;
 
 export const READY = new Set(TECHNIQUES.flatMap(g => g.items).filter(t => t.ready).map(t => t.id));
 export const techniqueLabel = id => TECHNIQUES.flatMap(g => g.items).find(t => t.id === id)?.label || id;
@@ -155,8 +162,21 @@ export function explainPayload(msg) {
 
 const tableError = e => bot(`I couldn't read that table: ${e.message}\n\nWrite it like this (→ marks the start state, * marks accepting states):\n\`\`\`\n${FORMAT}\n\`\`\``, { mood: 'sad' });
 
-export async function respond({ text, images = [], machine, llmOn, history }) {
+export async function respond({ text, images = [], machine, llmOn, history, practice = null }) {
   const trimmed = text.trim();
+  const hasTable = /\n.*[|\t]/.test(trimmed);
+
+  // Check my answer (needs the AI to read the student's work)
+  if (CHECK_RE.test(trimmed) || (images.length && practice)) {
+    if (!llmOn) return { msgs: [bot("I need my AI helper to read your work, and it isn't switched on here yet.", { mood: 'sad' })] };
+    return checkAttempt({ trimmed, images, practice });
+  }
+
+  // Practice mode
+  if (!hasTable && !images.length) {
+    if (practice && SHOW_RE.test(trimmed)) return solvePractice(practice);
+    if (PRACTICE_RE.test(trimmed)) return practiceMessage(trimmed, practice);
+  }
 
   // Pictures always need the AI to read them
   if (images.length) {
@@ -208,7 +228,10 @@ export async function respond({ text, images = [], machine, llmOn, history }) {
     const cmd = trimmed.match(TEST_CMD);
     if (cmd && cmd[2].trim().length < 200 && !/[?]/.test(cmd[2])) {
       const ss = parseStrings(cmd[2]);
-      if (ss.length) {
+      const syms = machine.alphabet.filter(a => a !== EPS);
+      // Only a real trace command if every word is made of the machine's symbols ("test ab, ba"),
+      // so "check this nfa please" goes to the AI instead.
+      if (ss.length && ss.every(w => [...w].every(ch => syms.includes(ch)))) {
         try {
           return { msgs: [solveWith('dfa_trace', machine, ss).msg] };
         } catch (e) {
@@ -246,6 +269,9 @@ async function askAi({ trimmed, images, machine, history }) {
   // For solved exercises our own intro already says what happens, so the AI's "I will …"
   // sentence would repeat it. Keep it only when nothing gets solved.
   const intro = '';
+
+  // The student showed their own work: mark it (code marks, the AI only reads)
+  if (ai.intent === 'check') return checkAttempt({ trimmed, images, practice: null });
 
   // S02: the AI designs, code lays it out and checks it
   if (ai.intent === 'solve' && ai.technique === 'dfa_design' && ai.design) {
@@ -336,4 +362,120 @@ function answerMessage(ai) {
     answer: { short: String(a.short), explain, examples, trap: a.trap ? String(a.trap) : '', session: /^S\d\d$/.test(a.session || '') ? a.session : '' },
     followUps: cleanList(ai.follow_ups, 3)
   };
+}
+
+// ---------------- practice mode ----------------
+function practiceMessage(text, current) {
+  // Topic buttons send their label (e.g. "NFA → DFA"), so match labels first.
+  const byLabel = PRACTICE_TOPICS.find(t => text.toLowerCase().includes(t.label.toLowerCase()));
+  const words = byLabel ? (byLabel.technique === 'min_both' ? 'min_both' : byLabel.technique) : techniqueFromWords(text) || '';
+  let topic = /moore|mealy|output/i.test(text) ? 'moore_mealy' : words.startsWith('min') ? 'min_both' : words.startsWith('eps') ? 'eps_removal' : words === 'subset_construction' || words === 'dfa_trace' ? words : null;
+  if (!topic && /^\s*(another|one more)/i.test(text) && current) topic = current.technique;
+  if (!topic) {
+    return {
+      msgs: [
+        bot("Let's practise! 🎲 Pick a topic and I'll make you a **fresh exercise**. Try it on paper, then send me a photo and I'll mark it.", {
+          mood: 'happy',
+          actions: PRACTICE_TOPICS.map(t => ({ label: `${t.emoji} ${t.label}`, say: `Give me a practice question on ${t.label}` }))
+        })
+      ]
+    };
+  }
+  let p;
+  try {
+    p = makePractice(topic);
+  } catch (e) {
+    return { msgs: [bot(e.message, { mood: 'sad' })] };
+  }
+  return {
+    msgs: [{ role: 'bot', kind: 'practice', mood: 'happy', text: p.task, practice: p }],
+    practice: p,
+    machine: p.machine || null
+  };
+}
+
+function solvePractice(p) {
+  try {
+    if (p.transducer) return { msgs: [solutionMessage('moore_mealy', solveMooreMealy(p.transducer, p.strings || []), [], null, false)] };
+    const { msg } = solveWith(p.technique, p.machine, p.strings || []);
+    return { msgs: [{ ...msg, text: `Here's the full solution. Compare it with yours, or switch on **🤔 Quiz me** to guess each step first.` }] };
+  } catch (e) {
+    return { msgs: [bot(e.message, { mood: 'sad' })] };
+  }
+}
+
+// ---------------- check my answer ----------------
+async function checkAttempt({ trimmed, images, practice }) {
+  const technique = practice ? (practice.technique === 'min_both' ? 'min_table' : practice.technique) : null;
+  // If the student typed the question as a table before their answer, OUR parser reads it.
+  const question = practice ? {} : questionFromText(trimmed);
+  const qMachine = practice?.machine || question.machine;
+  const qTransducer = practice?.transducer || question.transducer;
+  const read = await readAttempt({
+    message: trimmed,
+    images,
+    technique,
+    machineTable: qMachine ? machineToTable(qMachine) : null,
+    transducerTable: qTransducer ? transducerToTable(qTransducer) : null
+  });
+  const tech = technique || read.technique;
+  let machine = practice?.machine || question.machine || null;
+  let transducer = practice?.transducer || question.transducer || null;
+  try {
+    if (!machine && read.machine) machine = normalizeMachine(read.machine);
+    if (!transducer && read.transducer) transducer = { ...read.transducer, type: read.transducer.type === 'mealy' ? 'mealy' : 'moore' };
+  } catch (e) {
+    return { msgs: [bot(`I couldn't read the question's machine: ${e.message} Send the question too, or a clearer photo.`, { mood: 'sad' })] };
+  }
+  if (!tech || (!machine && !transducer && tech !== 'dfa_design')) {
+    return { msgs: [bot("I couldn't tell which question this answers. Send the question together with your work (one photo is fine), or start a 🎲 practice exercise first.", { mood: 'thinking' })] };
+  }
+  let result;
+  try {
+    result = checkStudent({ technique: tech, machine, transducer, student: read.student, languageRegex: read.language_regex });
+  } catch (e) {
+    return { msgs: [bot(e.message, { mood: 'sad' })] };
+  }
+  const full = result.score === result.total;
+  return {
+    msgs: [
+      {
+        role: 'bot',
+        kind: 'check',
+        mood: full ? 'happy' : result.score >= result.total / 2 ? 'wow' : 'sad',
+        celebrate: full,
+        text: full ? `Checked your ${techniqueLabel(tech)}: everything is right.` : `Checked your ${techniqueLabel(tech)}: first mistake at ${result.firstMistake?.where}.`,
+        result,
+        unreadable: Array.isArray(read.unreadable) ? read.unreadable.map(String).slice(0, 4) : []
+      }
+    ],
+    machine: machine || undefined,
+    practice: practice || { technique: tech, machine, transducer, strings: [] }
+  };
+}
+
+// The question's table, if it is clearly the question: it comes before "my answer" (or
+// there are two tables and it is the first). Otherwise let the AI decide what is what.
+function questionFromText(text) {
+  const lines = text.split('\n');
+  const blocks = [];
+  let cur = null;
+  lines.forEach((l, i) => {
+    if (/[|\t]/.test(l) && l.trim()) {
+      if (!cur) blocks.push((cur = { start: i, lines: [] }));
+      cur.lines.push(l);
+    } else cur = null;
+  });
+  const markerLine = lines.findIndex(l => /my (answer|solution|work|attempt)|^\s*(answer|solution)\s*:/i.test(l));
+  const first = blocks.find(b => b.lines.length >= 2);
+  if (!first) return {};
+  const beforeMarker = markerLine >= 0 && first.start + first.lines.length <= markerLine;
+  if (!beforeMarker && blocks.filter(b => b.lines.length >= 2).length < 2) return {};
+  const table = first.lines.join('\n');
+  try {
+    if (looksLikeTransducer(table)) return { transducer: parseTransducer(table) };
+    return { machine: parseTransitionTable(table) };
+  } catch {
+    return {};
+  }
 }
