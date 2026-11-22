@@ -1,0 +1,339 @@
+// Decides how Stately answers a message. Order of preference:
+//   1. pasted JSON in the team contract  → render it (for testing prompts)
+//   2. a table (finite automaton or Moore/Mealy) + optional instruction / "strings:" → solve with CODE
+//   3. a command about the machine already in the chat ("test ab", "convert to a DFA",
+//      "minimise it", "remove the ε-moves") → solve with CODE
+//   4. anything else → the AI analyzer, which may hand a machine (or a design) back to code,
+//      or answers a concept question
+//   5. no AI key → a friendly explanation of what works offline
+
+import { parseTransitionTable, normalizeMachine, machineToTable, isNfa, isDfa, EPS, stringsUpTo, accepts } from '../tutor/machine.js';
+import { solveSubsetConstruction } from '../tutor/techniques/subsetConstruction.js';
+import { solveTrace } from '../tutor/techniques/dfaTrace.js';
+import { solveMinimise } from '../tutor/techniques/minimise.js';
+import { solveEpsClosure, solveEpsRemoval } from '../tutor/techniques/epsilon.js';
+import { looksLikeTransducer, parseTransducer, solveMooreMealy } from '../tutor/techniques/mooreMealy.js';
+import { solveDesign } from '../tutor/techniques/dfaDesign.js';
+import { validateContract, selfCheck } from '../tutor/checks.js';
+import { SUBSET_PRESETS, TECHNIQUES } from '../tutor/presets.js';
+import { analyze } from './llmClient.js';
+
+export const READY = new Set(TECHNIQUES.flatMap(g => g.items).filter(t => t.ready).map(t => t.id));
+export const techniqueLabel = id => TECHNIQUES.flatMap(g => g.items).find(t => t.id === id)?.label || id;
+
+const FORMAT = `state | a        | b\n→ q0  | {q0, q1} | {q0}\nq1    | ∅        | {q2}\n* q2  | ∅        | ∅`;
+
+const bot = (text, extra = {}) => ({ role: 'bot', kind: 'text', text, mood: 'idle', ...extra });
+
+const STRINGS_LINE = /^\s*(strings?|tests?|inputs?|words?)\s*[:=]\s*(.*)$/i;
+const TEST_CMD = /^\s*(test|trace|run|check|try)\b[\s:]*(.*)$/is;
+
+export function parseStrings(s) {
+  return [
+    ...new Set(
+      s
+        .split(/[,\s]+/)
+        .map(x => x.trim().replace(/^["'](.*)["']$/, '$1'))
+        .filter(x => x !== '')
+        .map(x => (['ε', 'eps', 'epsilon', 'λ', '""', "''", 'empty'].includes(x.toLowerCase()) ? '' : x))
+    )
+  ];
+}
+
+// Split a message into: instruction text (before the table), the table, and test strings.
+function splitInput(text) {
+  const strings = [];
+  const rest = [];
+  text.split('\n').forEach(l => {
+    const m = l.match(STRINGS_LINE);
+    if (m) strings.push(...parseStrings(m[2]));
+    else rest.push(l);
+  });
+  const headerAt = rest.findIndex(l => /[|\t]/.test(l));
+  const instruction = headerAt > 0 ? rest.slice(0, headerAt).join(' ').trim() : '';
+  const tableText = (headerAt >= 0 ? rest.slice(headerAt) : rest).join('\n').trim();
+  return { instruction, tableText, strings };
+}
+
+function looksLikeTable(t) {
+  const lines = t.split('\n').filter(l => l.trim());
+  return lines.length >= 2 && /[|\t]/.test(lines[0]) && /[|\t]/.test(lines[1]);
+}
+
+const norm = s => s.replace(/\s+/g, ' ').trim();
+function presetNotes(tableText) {
+  return SUBSET_PRESETS.find(p => norm(p.table) === norm(tableText))?.notes || {};
+}
+
+// What the student asked for, from their own words (works without the AI).
+function techniqueFromWords(text) {
+  const t = ` ${text.toLowerCase()} `;
+  if (/minimi[sz]|minimal|smallest|reduce the states/.test(t)) {
+    const part = /partition|refinement/.test(t);
+    const table = /table[\s-]*fill|myhill|filling/.test(t);
+    if (/both|two ways/.test(t) || (part && table)) return 'min_both';
+    return part ? 'min_partition' : table ? 'min_table' : 'min_both';
+  }
+  if (/closure|ε-cl|e-cl/.test(t)) return 'eps_closure';
+  if (/(remove|removing|eliminat|kill|get rid).{0,20}(ε|eps|epsilon|lambda)|(ε|epsilon|eps)[\s-]*(free|removal)/.test(t)) return 'eps_removal';
+  if (/(to|into|a|equivalent) dfa|subset|powerset|determini[sz]/.test(t)) return 'subset_construction';
+  if (/\b(trace|test|run|accept)/.test(t)) return 'dfa_trace';
+  return null;
+}
+
+function pickTechnique(words, m, strings) {
+  const asked = techniqueFromWords(words || '');
+  if (asked === 'subset_construction' && m.alphabet.includes(EPS)) return 'eps_removal'; // ε first, then the DFA
+  if (asked === 'eps_closure' || asked === 'eps_removal') return m.alphabet.includes(EPS) ? asked : strings.length ? 'dfa_trace' : isNfa(m) ? 'subset_construction' : 'min_both';
+  if (asked && asked.startsWith('min')) return isDfa(m) ? asked : m.alphabet.includes(EPS) ? 'eps_removal' : 'subset_construction';
+  if (asked) return asked;
+  if (strings.length) return m.alphabet.includes(EPS) ? 'eps_closure' : 'dfa_trace';
+  if (m.alphabet.includes(EPS)) return 'eps_removal';
+  if (isNfa(m)) return 'subset_construction';
+  return 'min_both';
+}
+
+const INTRO = {
+  subset_construction: "Here's the **subset construction**, one row at a time. Press **Next** (or ←/→) to walk through it.",
+  min_both: "Here's the minimisation **both ways**: partition refinement first, then table filling. They must end with the same classes.",
+  min_partition: "Here's the minimisation by **partition refinement**, round by round.",
+  min_table: "Here's the minimisation by **table filling**, pass by pass, with a witness for every crossed pair.",
+  eps_closure: "Here are the **ε-closures**, then each string traced as close → move → close.",
+  eps_removal: "Here's the **ε-removal**: closures, then δ′ one entry per line, then F′ (that's where the marks are).",
+  moore_mealy: "Here's the machine run step by step, then **converted** to the other kind and checked.",
+  dfa_design: "Here's the design, **facts first**, following the 5-step recipe."
+};
+
+// Run a code technique on a machine and wrap the result as a chat message.
+export function solveWith(technique, machine, strings = [], notes = {}) {
+  let solution;
+  let keep = machine;
+  if (technique === 'subset_construction') solution = solveSubsetConstruction(machine, notes);
+  else if (technique === 'dfa_trace') {
+    if (!strings.length) {
+      return { msg: bot('Got the machine! Which strings should I trace? Send something like `test aab, ba, ε`.', { mood: 'thinking' }), machine };
+    }
+    solution = solveTrace(machine, strings, notes);
+  } else if (technique.startsWith('min')) {
+    solution = solveMinimise(machine, { min_both: 'both', min_partition: 'partition', min_table: 'table' }[technique] || 'both', notes);
+  } else if (technique === 'eps_closure') solution = solveEpsClosure(machine, strings, notes);
+  else if (technique === 'eps_removal') solution = solveEpsRemoval(machine, notes);
+  else return { msg: bot("I can't do that one yet 🛠️. Send me a table and tell me what to do with it.", { mood: 'sad' }), machine };
+
+  const finalMachine = [...solution.steps].reverse().find(s => s.extra?.machine)?.extra.machine || machine;
+  if (['subset_construction', 'eps_removal'].includes(technique) || technique.startsWith('min')) keep = finalMachine;
+  return { msg: solutionMessage(technique, solution, selfCheck(solution, machine), finalMachine, !notes.facts), machine: keep };
+}
+
+function solutionMessage(technique, solution, checks, finalMachine, explainable) {
+  const allGood = checks.every(c => c.ok !== false);
+  return {
+    role: 'bot',
+    kind: 'solution',
+    text: technique === 'dfa_trace' ? `I traced ${solution.tests.length === 1 ? 'your string' : 'your strings'}, one move per line.` : INTRO[technique] || 'Here it is, step by step.',
+    solution,
+    checks,
+    mood: allGood ? 'happy' : 'sad',
+    celebrate: allGood,
+    needsExplain: explainable && (technique === 'subset_construction' || technique === 'eps_removal' || technique.startsWith('min')),
+    finalMachine,
+    technique
+  };
+}
+
+// What the AI explainer needs: the final machine and code-computed examples.
+export function explainPayload(msg) {
+  const m = msg.finalMachine;
+  const pool = stringsUpTo(m.alphabet, 5);
+  return {
+    technique: msg.solution.technique,
+    machineTable: machineToTable(m),
+    accepted: pool.filter(w => accepts(m, w)).slice(0, 12),
+    rejected: pool.filter(w => !accepts(m, w)).slice(0, 12)
+  };
+}
+
+const tableError = e => bot(`I couldn't read that table: ${e.message}\n\nWrite it like this (→ marks the start state, * marks accepting states):\n\`\`\`\n${FORMAT}\n\`\`\``, { mood: 'sad' });
+
+export async function respond({ text, images = [], machine, llmOn, history }) {
+  const trimmed = text.trim();
+
+  // Pictures always need the AI to read them
+  if (images.length) {
+    if (!llmOn) return { msgs: [bot("I can't read pictures just yet 📷. For now, type the machine as a table and I'll solve it:\n```\n" + FORMAT + '\n```', { mood: 'sad' })] };
+    return askAi({ trimmed, images, machine, history });
+  }
+
+  // 1. Pasted contract JSON
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const problems = validateContract(parsed);
+      if (problems.some(p => p.startsWith('Missing') || p.includes('must be'))) {
+        return { msgs: [bot(`That JSON doesn't match our answer format:\n${problems.map(p => `- ${p}`).join('\n')}`, { mood: 'sad' })] };
+      }
+      return { msgs: [{ role: 'bot', kind: 'solution', text: 'Rendered your JSON answer.', solution: parsed, checks: selfCheck(parsed, null), mood: 'wow' }] };
+    } catch {
+      /* not JSON after all */
+    }
+  }
+
+  // 2. A table
+  const { instruction, tableText, strings } = splitInput(trimmed);
+  if (looksLikeTable(tableText)) {
+    if (looksLikeTransducer(tableText)) {
+      try {
+        const M = parseTransducer(tableText);
+        return { msgs: [solutionMessage('moore_mealy', solveMooreMealy(M, strings), [], null, false)] };
+      } catch (e) {
+        return { msgs: [bot(`I couldn't read that Moore/Mealy table: ${e.message}`, { mood: 'sad' })] };
+      }
+    }
+    let m;
+    try {
+      m = parseTransitionTable(tableText);
+    } catch (e) {
+      return { msgs: [tableError(e)] };
+    }
+    try {
+      const { msg, machine: kept } = solveWith(pickTechnique(instruction, m, strings), m, strings, presetNotes(tableText));
+      return { msgs: [msg], machine: kept };
+    } catch (e) {
+      return { msgs: [bot(e.message, { mood: 'sad' })], machine: m };
+    }
+  }
+
+  // 3. A command about the machine we already have
+  if (machine) {
+    const cmd = trimmed.match(TEST_CMD);
+    if (cmd && cmd[2].trim().length < 200 && !/[?]/.test(cmd[2])) {
+      const ss = parseStrings(cmd[2]);
+      if (ss.length) {
+        try {
+          return { msgs: [solveWith('dfa_trace', machine, ss).msg] };
+        } catch (e) {
+          return { msgs: [bot(e.message, { mood: 'sad' })] };
+        }
+      }
+    }
+    const asked = trimmed.length < 120 && !/\?\s*$/.test(trimmed) ? techniqueFromWords(trimmed) : null;
+    if (asked && asked !== 'dfa_trace') {
+      try {
+        const { msg, machine: kept } = solveWith(pickTechnique(trimmed, machine, []), machine, []);
+        return { msgs: [msg], machine: kept };
+      } catch (e) {
+        return { msgs: [bot(e.message, { mood: 'sad' })] };
+      }
+    }
+  }
+
+  // 4. The AI analyzer
+  if (llmOn) return askAi({ trimmed, images: [], machine, history });
+
+  // 5. Offline
+  return {
+    msgs: [
+      bot(
+        "I can't answer written questions just yet, but send me a machine as a table and I'll solve it step by step:\n```\n" + FORMAT + "\n```\nAdd a line like `strings: aab, ba, ε` to test strings.",
+        { mood: 'thinking' }
+      )
+    ]
+  };
+}
+
+async function askAi({ trimmed, images, machine, history }) {
+  const ai = await analyze({ message: trimmed, images, technique: null, machineTable: machine ? machineToTable(machine) : null, history });
+  // For solved exercises our own intro already says what happens, so the AI's "I will …"
+  // sentence would repeat it. Keep it only when nothing gets solved.
+  const intro = '';
+
+  // S02: the AI designs, code lays it out and checks it
+  if (ai.intent === 'solve' && ai.technique === 'dfa_design' && ai.design) {
+    try {
+      const { solution, machine: m, checks } = solveDesign(ai.design, String(ai.design.description || ai.reply || ''));
+      const msg = solutionMessage('dfa_design', solution, [...selfCheck(solution, null), ...checks], m, false);
+      return { msgs: [{ ...msg, text: `${intro}${msg.text}` }], machine: m };
+    } catch (e) {
+      return { msgs: [bot(`${intro}I tried to build the design but something is off: ${e.message} Could you ask again?`, { mood: 'sad' })] };
+    }
+  }
+
+  // Moore / Mealy described in words or a picture
+  if (ai.intent === 'solve' && ai.technique === 'moore_mealy' && ai.transducer) {
+    try {
+      const t = ai.transducer;
+      const M = { type: t.type === 'mealy' ? 'mealy' : 'moore', states: t.states.map(String), alphabet: t.alphabet.map(String), start: String(t.start), delta: t.delta, out: t.out };
+      M.states.forEach(q => M.alphabet.forEach(a => {
+        if (!M.states.includes(M.delta?.[q]?.[a])) throw new Error(`δ(${q}, ${a}) is missing.`);
+      }));
+      const msg = solutionMessage('moore_mealy', solveMooreMealy(M, (ai.strings || []).map(String)), [], null, false);
+      return { msgs: [{ ...msg, text: `${intro}${msg.text}` }] };
+    } catch (e) {
+      return { msgs: [bot(`${intro}I couldn't read that Moore/Mealy machine: ${e.message}`, { mood: 'sad' })] };
+    }
+  }
+
+  // A finite automaton to convert / minimise / trace
+  if (ai.intent === 'solve' && (ai.machine || machine)) {
+    let m;
+    try {
+      m = ai.machine ? normalizeMachine(ai.machine) : machine;
+    } catch (e) {
+      return { msgs: [bot(`I tried to read the machine but something is off: ${e.message} Could you check it and send it again?`, { mood: 'sad' })] };
+    }
+    const ss = (ai.strings || []).map(String);
+    let tech = ai.technique && (READY.has(ai.technique) || ai.technique.startsWith('min')) ? ai.technique : null;
+    if (tech && tech.startsWith('min')) tech = { both: 'min_both', partition: 'min_partition', table: 'min_table' }[ai.method] || tech;
+    if (!tech || (tech === 'subset_construction' && m.alphabet.includes(EPS))) tech = pickTechnique(trimmed, m, ss);
+    const readBack = ai.machine ? `${intro}This is the machine as I read it (tell me if I got something wrong):\n\`\`\`\n${machineToTable(m)}\n\`\`\`\n` : intro;
+    try {
+      const { msg, machine: kept } = solveWith(tech, m, ss);
+      return { msgs: [{ ...msg, text: `${readBack}${msg.text}` }], machine: kept };
+    } catch (e) {
+      return { msgs: [bot(`${readBack}${e.message}`, { mood: 'sad' })], machine: m };
+    }
+  }
+
+  if (ai.intent === 'question' && ai.answer?.short) return { msgs: [answerMessage(ai)] };
+  return {
+    msgs: [
+      bot(ai.reply || ai.answer?.short || "Hmm, I'm not sure what to do with that. Could you say it another way?", {
+        mood: ai.intent === 'unsupported' ? 'sad' : 'idle',
+        followUps: cleanList(ai.follow_ups, 3)
+      })
+    ]
+  };
+}
+
+const cleanList = (x, n) => (Array.isArray(x) ? x.map(String).map(t => t.trim()).filter(Boolean).slice(0, n) : []);
+
+// A structured explanation. Guard: every example machine is checked by code: an
+// invalid one is dropped, and each string's ✓/✗ is computed here, never taken from the AI.
+function answerMessage(ai) {
+  const a = ai.answer;
+  const examples = (Array.isArray(a.examples) ? a.examples : [])
+    .slice(0, 2)
+    .map(ex => {
+      try {
+        const m = normalizeMachine(ex.machine);
+        if (m.states.length > 8) return null; // examples must stay tiny
+        const syms = m.alphabet.filter(x => x !== EPS);
+        const strings = cleanList(ex.strings, 5)
+          .map(w => (['ε', 'eps', 'epsilon', '""'].includes(w) ? '' : w))
+          .filter(w => [...w].every(ch => syms.includes(ch)));
+        return { caption: String(ex.caption || ''), machine: m, tests: strings.map(w => ({ input: w, accepted: accepts(m, w) })) };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  const explain = cleanList(a.explain, 6);
+  return {
+    role: 'bot',
+    kind: 'answer',
+    mood: 'wow',
+    text: [a.short, ...explain].join('\n'), // plain version, used as chat history for the AI
+    answer: { short: String(a.short), explain, examples, trap: a.trap ? String(a.trap) : '', session: /^S\d\d$/.test(a.session || '') ? a.session : '' },
+    followUps: cleanList(ai.follow_ups, 3)
+  };
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Layers, Cpu, GitFork, Code2, ShieldAlert, Sparkles, Sun, Moon, GraduationCap
+  Layers, Cpu, GitFork, Code2, ShieldAlert, Sparkles, Sun, Moon, GraduationCap, BookOpen
 } from 'lucide-react';
 
 function GithubIcon({ className }) {
@@ -13,6 +13,7 @@ function GithubIcon({ className }) {
 
 export default function Navbar({ activeTab, setActiveTab, darkMode, setDarkMode }) {
   const tabs = [
+    { id: 'tutor', label: 'Stately chat', short: 'Chat', icon: BookOpen },
     { id: 'pda', label: 'Pushdown Automata', short: 'PDA', icon: Layers, badge: 'Core' },
     { id: 'fa', label: 'Finite Automata', short: 'DFA / NFA', icon: Sparkles, badge: 'NFA→DFA' },
     { id: 'tm', label: 'Turing Machine', short: 'Turing', icon: Cpu, badge: 'Infinite' },

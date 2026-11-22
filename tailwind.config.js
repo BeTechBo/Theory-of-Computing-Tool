@@ -11,6 +11,8 @@ export default {
         serif: ['Newsreader', 'Georgia', 'serif'],
         sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        fun: ['Fredoka', 'Nunito', 'system-ui', 'sans-serif'],
+        round: ['Nunito', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
