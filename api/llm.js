@@ -4,7 +4,8 @@
 // middleware in development (see vite.config.js).
 
 import { askLLM, llmStatus } from './_lib/llm.js';
-import { ANALYZE, EXPLAIN, CHECK } from './_lib/prompts.js';
+import { ANALYZE, EXPLAIN, CHECK, EXPLAIN_SUBJECT } from './_lib/prompts.js';
+import { GRAMMAR_TECHNIQUE_SESSION } from './_lib/courseNotesGrammar.js';
 import { SESSION_MAP, relevantNotes } from './_lib/courseNotes.js';
 
 const TECHNIQUE_SESSION = {
@@ -20,7 +21,8 @@ const TECHNIQUE_SESSION = {
   state_elimination: 'S10 state elimination',
   thompson: 'S11 thompson',
   product: 'S12 product construction',
-  pumping: 'S13 pumping lemma'
+  pumping: 'S13 pumping lemma',
+  ...GRAMMAR_TECHNIQUE_SESSION // S17–S21
 };
 
 // The system prompt + the course map + the notes that match this request.
@@ -89,6 +91,21 @@ export default async function handler(req, res) {
         `Accepted (shortest first): ${accepted.map(w => (w === '' ? 'ε' : w)).join(', ') || 'none'}\n` +
         `Rejected (shortest first): ${rejected.map(w => (w === '' ? 'ε' : w)).join(', ') || 'none'}`;
       return send(200, await askLLM({ system: withNotes(EXPLAIN, TECHNIQUE_SESSION[technique] || technique), messages: [{ role: 'user', content }] }));
+    }
+
+    // S17–S21: what each variable generates / each state and stack symbol means, and L in one sentence
+    if (body.task === 'explain_subject') {
+      const { subject = 'grammar', text = '', items = [], accepted = [], rejected = [] } = body;
+      if (!text || typeof text !== 'string' || text.length > MAX_CHARS) return send(400, { error: 'Missing or oversized grammar.' });
+      const show = w => (w === '' ? 'ε' : String(w));
+      const names = (Array.isArray(items) ? items : []).slice(0, 40).map(String);
+      const content =
+        `${subject === 'pda' ? 'Pushdown automaton' : 'Context-free grammar'}:\n${text}\n\n` +
+        `Describe these names, in this order: ${names.join(', ')}\n` +
+        `In the language (shortest first): ${(Array.isArray(accepted) ? accepted : []).slice(0, 20).map(show).join(', ') || 'none'}\n` +
+        `Not in the language: ${(Array.isArray(rejected) ? rejected : []).slice(0, 20).map(show).join(', ') || 'none'}`;
+      const topic = subject === 'pda' ? GRAMMAR_TECHNIQUE_SESSION.pda : `${GRAMMAR_TECHNIQUE_SESSION.cfg} context-free`;
+      return send(200, await askLLM({ system: withNotes(EXPLAIN_SUBJECT, topic), messages: [{ role: 'user', content }] }));
     }
 
     if (body.task === 'check') {

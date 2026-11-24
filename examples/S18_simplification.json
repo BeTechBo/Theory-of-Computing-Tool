@@ -1,0 +1,716 @@
+{
+ "technique": "simplification",
+ "session": "S18",
+ "input_summary": "CFG with 7 productions over {a, b}, start S",
+ "facts": [
+  {
+   "item": "S",
+   "meaning": "a run of a’s, one b, then a run of a’s (a*ba*)"
+  },
+  {
+   "item": "A",
+   "meaning": "any run of a’s, possibly empty (a*)"
+  },
+  {
+   "item": "B",
+   "meaning": "one b followed by any run of a’s (ba*)"
+  },
+  {
+   "item": "C",
+   "meaning": "the same as A: any run of a’s (a*)"
+  }
+ ],
+ "facts_title": "What each variable generates",
+ "formal": "G = ({S, A, B, C}, {a, b}, P, S)",
+ "steps": [
+  {
+   "title": "The grammar we start from",
+   "explain": "Simplifying removes everything the grammar does not need, in a fixed order: 1a non-generating variables, 1b unreachable symbols, 2 ε-productions, 3 unit productions, 4 useless symbols again. Each step works on the output of the step before it, never on the original.",
+   "lines": [
+    "G = ({S, A, B, C}, {a, b}, P, S)",
+    "P: S → AB | b",
+    "P: A → aA | ε",
+    "P: B → bC | b",
+    "P: C → A",
+    "7 productions, 4 variables"
+   ],
+   "table": [
+    [
+     "variable",
+     "productions"
+    ],
+    [
+     "→ S",
+     "AB | b"
+    ],
+    [
+     "A",
+     "aA | ε"
+    ],
+    [
+     "B",
+     "bC | b"
+    ],
+    [
+     "C",
+     "A"
+    ]
+   ],
+   "highlight": [],
+   "extra": {}
+  },
+  {
+   "title": "Step 1a · Variables that generate nothing",
+   "explain": "Work bottom-up: a variable is generating if one of its productions has only terminals and generating variables on the right. ε counts as a terminal string, so A → ε makes A generating.",
+   "lines": [
+    "generating, round 1: S (S → b)   A (A → ε)   B (B → b)",
+    "generating, round 2: C (C → A)",
+    "generating, round 3: nothing new → stop",
+    "not generating: none, so all 4 variables survive"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "AB",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "bC",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "C",
+       "alts": [
+        {
+         "text": "A",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 7,
+     "after": 7,
+     "changed": false,
+     "note": ""
+    }
+   },
+   "quiz": {
+    "question": "Step 1a: which variables can never produce a terminal string?",
+    "answer": "none",
+    "options": [
+     "none",
+     "C",
+     "A, B"
+    ],
+    "why": "Every variable reaches a terminal string, so nothing is removed. The check still has to be written."
+   }
+  },
+  {
+   "title": "Step 1b · Symbols unreachable from S",
+   "explain": "Work top-down from S: a symbol is reachable if it appears on the right of a production of a reachable variable. 1a must come first, because deleting a non-generating variable can cut the only path to another symbol.",
+   "lines": [
+    "reachable, round 0: S",
+    "reachable, round 1: S → AB reaches A, B   S → b reaches b",
+    "reachable, round 2: A → aA reaches a   B → bC reaches C",
+    "unreachable from S: none"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "AB",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "bC",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "C",
+       "alts": [
+        {
+         "text": "A",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 7,
+     "after": 7,
+     "changed": false,
+     "note": ""
+    }
+   }
+  },
+  {
+   "title": "Step 2 · Remove the ε-productions",
+   "explain": "Find the nullable variables (those that can derive ε). Then rewrite every production with each nullable symbol present or absent, in every combination except \"all absent\", and delete the ε-productions.",
+   "lines": [
+    "nullable, round 1: A (A → ε)",
+    "nullable, round 2: C (C → A)",
+    "nullable = {A, C}   (not nullable: S, B)",
+    "S → AB gives S → AB | B",
+    "A → aA gives A → aA | a",
+    "A → ε is deleted",
+    "B → bC gives B → bC | b",
+    "C → A stays as it is: dropping its only symbol would create a new ε-production",
+    "the other 2 productions have no nullable symbol and stay unchanged",
+    "S is not nullable, so ε ∉ L(G): the language is unchanged",
+    "careful: this step CREATED the unit production S → B. Step 3 must re-read the whole grammar"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "AB",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "B",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "removed"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "bC",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "C",
+       "alts": [
+        {
+         "text": "A",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 7,
+     "after": 8,
+     "changed": true,
+     "note": ""
+    }
+   },
+   "quiz": {
+    "question": "Step 2: which variables are nullable?",
+    "answer": "{A, C}",
+    "options": [
+     "{A, C}",
+     "{A}",
+     "{S, A, B, C}",
+     "{S, B}"
+    ],
+    "why": "A variable is nullable if it has A → ε, or a production whose right-hand side is made of nullable variables only. Follow the chains to the end."
+   }
+  },
+  {
+   "title": "Step 3 · Remove the unit productions",
+   "explain": "Re-read the CURRENT grammar for productions A → B (step 2 may have created some). Follow every chain to its end: if A ⇒ … ⇒ B by unit productions, A receives all of B's non-unit productions.",
+   "lines": [
+    "unit productions in the current grammar: S → B (created by step 2),  C → A",
+    "chain S ⇒ B: B's non-unit productions are bC | b  →  add S → bC",
+    "chain C ⇒ A: A's non-unit productions are aA | a  →  add C → aA | a",
+    "then delete the unit productions themselves"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "AB",
+         "status": "same"
+        },
+        {
+         "text": "B",
+         "status": "removed"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "bC",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "bC",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "C",
+       "alts": [
+        {
+         "text": "A",
+         "status": "removed"
+        },
+        {
+         "text": "aA",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 8,
+     "after": 9,
+     "changed": true,
+     "note": ""
+    }
+   }
+  },
+  {
+   "title": "Step 4 · Useless symbols again",
+   "explain": "Steps 2 and 3 can orphan symbols: deleting a unit production may remove the only arrow into a variable. So run 1a and 1b once more on the current grammar.",
+   "lines": [
+    "generating, round 1: S (S → b)   A (A → a)   B (B → b)   C (C → a)",
+    "generating, round 2: nothing new → stop",
+    "not generating: none, so all 4 variables survive",
+    "reachable, round 0: S",
+    "reachable, round 1: S → AB reaches A, B   S → b reaches b   S → bC reaches C",
+    "reachable, round 2: A → aA reaches a",
+    "unreachable from S: none"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "AB",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "bC",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "bC",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "C",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 9,
+     "after": 9,
+     "changed": false,
+     "note": ""
+    }
+   }
+  },
+  {
+   "title": "Check: same language, smaller grammar",
+   "explain": "Finish by writing the final grammar in full, naming the three properties it now has, and checking the language on short strings. It catches the commonest slip: dropping a production that was doing real work.",
+   "lines": [
+    "before: S → AB | b   A → aA | ε   B → bC | b   C → A",
+    "after:  S → AB | b | bC   A → aA | a   B → bC | b   C → aA | a",
+    "G′ = ({S, A, B, C}, {a, b}, P, S)",
+    "no useless symbols ✓ · no ε-productions ✓ · no unit productions ✓",
+    "productions: 7 → 9   ·   variables: 4 → 4",
+    "L unchanged: compared on every string of length ≤ 10 (55 strings of the language) ✓"
+   ],
+   "table": [
+    [
+     "variable",
+     "productions"
+    ],
+    [
+     "→ S",
+     "AB | b | bC"
+    ],
+    [
+     "A",
+     "aA | a"
+    ],
+    [
+     "B",
+     "bC | b"
+    ],
+    [
+     "C",
+     "aA | a"
+    ]
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "AB",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "bC",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "aA",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "removed"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "bC",
+         "status": "same"
+        },
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "C",
+       "alts": [
+        {
+         "text": "A",
+         "status": "removed"
+        },
+        {
+         "text": "aA",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 7,
+     "after": 9,
+     "changed": true,
+     "note": ""
+    },
+    "grammar": {
+     "variables": [
+      "S",
+      "A",
+      "B",
+      "C"
+     ],
+     "terminals": [
+      "a",
+      "b"
+     ],
+     "start": "S",
+     "rules": [
+      {
+       "lhs": "S",
+       "rhs": [
+        "A",
+        "B"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "b"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "b",
+        "C"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "a",
+        "A"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "a"
+       ]
+      },
+      {
+       "lhs": "B",
+       "rhs": [
+        "b",
+        "C"
+       ]
+      },
+      {
+       "lhs": "B",
+       "rhs": [
+        "b"
+       ]
+      },
+      {
+       "lhs": "C",
+       "rhs": [
+        "a",
+        "A"
+       ]
+      },
+      {
+       "lhs": "C",
+       "rhs": [
+        "a"
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "tests": [
+  {
+   "input": "b",
+   "path": "S ⇒ b",
+   "accepted": true
+  },
+  {
+   "input": "ab",
+   "path": "S ⇒ AB ⇒ aB ⇒ ab",
+   "accepted": true
+  },
+  {
+   "input": "ba",
+   "path": "S ⇒ bC ⇒ ba",
+   "accepted": true
+  },
+  {
+   "input": "aaab",
+   "path": "S ⇒ AB ⇒ aAB ⇒ aaAB ⇒ aaaB ⇒ aaab",
+   "accepted": true
+  },
+  {
+   "input": "",
+   "path": "no derivation tree has this yield",
+   "accepted": false
+  },
+  {
+   "input": "a",
+   "path": "no derivation tree has this yield",
+   "accepted": false
+  }
+ ],
+ "test_labels": [
+  "generated",
+  "not generated"
+ ],
+ "language": "a*ba*: every string over {a,b} with exactly one b.",
+ "conclusion": "Simplified: 7 → 9 productions and 4 → 4 variables, with no useless symbols, no ε-productions and no unit productions. The language is unchanged (checked up to length 10)."
+}

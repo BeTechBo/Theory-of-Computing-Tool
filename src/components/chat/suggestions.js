@@ -1,7 +1,10 @@
 // Suggested follow-up questions under each answer. The ready-made answers come from
 // the S01/S04 slides and model answers; with the AI connected, the AI answers instead.
 
+import { GRAMMAR_FOLLOW_UPS, GRAMMAR_READY_ANSWERS } from './suggestionsGrammar.js';
+
 export const FOLLOW_UPS = {
+  ...GRAMMAR_FOLLOW_UPS, // S17–S21
   subset_construction: ['When is ∅ a state?', 'Why only reachable subsets?', 'What does each subset mean?'],
   dfa_trace: ['What does δ̂(q0, w) mean?', 'When is ε accepted?'],
   min_table: ['Why remove unreachable states first?', 'What is a witness string?', 'Why do both methods agree?'],
@@ -18,6 +21,7 @@ export const FOLLOW_UPS = {
 };
 
 export const READY_ANSWERS = {
+  ...GRAMMAR_READY_ANSWERS, // S17–S21
   'When is ∅ a state?': `**∅ becomes a state when some reachable subset has no move at all on a symbol.**
 - Every path has died and nothing can revive it, so ∅ loops to itself on every symbol: it is the dead (trap) state from Session 2.
 - It never appears when one NFA state is in every reachable subset *and* has an arrow on every symbol (like x0 in S04 Q1).

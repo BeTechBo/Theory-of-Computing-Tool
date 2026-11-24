@@ -1,0 +1,886 @@
+{
+ "technique": "pda",
+ "session": "S20",
+ "input_summary": "PDA with 3 states and 5 transitions, accepting by final state",
+ "facts": [
+  {
+   "item": "q0",
+   "meaning": "still reading a’s: the stack holds one X for every a read so far"
+  },
+  {
+   "item": "q1",
+   "meaning": "reading b’s: each b has cancelled one X"
+  },
+  {
+   "item": "q2",
+   "meaning": "every a has been matched by a b (accepting)"
+  },
+  {
+   "item": "X",
+   "meaning": "one a that is still waiting for its b"
+  },
+  {
+   "item": "Z",
+   "meaning": "the bottom marker: when it is on top again, the count is back to zero"
+  }
+ ],
+ "facts_title": "What each state and stack symbol means",
+ "formal": "M = ({q0, q1, q2}, {a, b}, {X, Z}, δ, q0, Z, {q2})",
+ "steps": [
+  {
+   "title": "The machine as a seven-tuple",
+   "explain": "A PDA is a finite automaton with a stack. One move reads an input symbol (or nothing: an ε-move), looks at the TOP of the stack only, and replaces that top symbol by a string. The stack is written top first.",
+   "lines": [
+    "M = ({q0, q1, q2}, {a, b}, {X, Z}, δ, q0, Z, {q2})",
+    "start state q0; the stack starts as Z and nothing else (Z marks the bottom)",
+    "acceptance by FINAL STATE: the input must be finished in a state of F = {q2}; the stack may hold anything",
+    "δ has 5 transitions: each one reads a symbol (or ε), looks at the top of the stack, and replaces it"
+   ],
+   "table": [
+    [
+     "transition",
+     "reads",
+     "top",
+     "what it does"
+    ],
+    [
+     "δ(q0, a, Z) = (q0, XZ)",
+     "a",
+     "Z",
+     "push X on top of Z"
+    ],
+    [
+     "δ(q0, a, X) = (q0, XX)",
+     "a",
+     "X",
+     "push X on top of X"
+    ],
+    [
+     "δ(q0, b, X) = (q1, ε)",
+     "b",
+     "X",
+     "pop X"
+    ],
+    [
+     "δ(q1, b, X) = (q1, ε)",
+     "b",
+     "X",
+     "pop X"
+    ],
+    [
+     "δ(q1, ε, Z) = (q2, Z)",
+     "ε",
+     "Z",
+     "leave the stack alone"
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q0"
+   ],
+   "extra": {}
+  },
+  {
+   "title": "Deterministic: both rules hold",
+   "explain": "Rule 1: at most one move for each (state, input symbol or ε, top of stack). Rule 2: if an ε-move is available at (state, top), there must be no reading move at that same (state, top). Rule 2 is the one people forget.",
+   "lines": [
+    "rule 1 ✓  every δ(q, a, Z) has at most one element",
+    "rule 2 ✓  where an ε-move exists, at (q1, Z), no reading move is defined",
+    "so the machine never has a choice: every string has exactly one run"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "Is this PDA deterministic?",
+    "answer": "yes",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "why": "Both determinism rules hold."
+   },
+   "extra": {}
+  },
+  {
+   "title": "Trace \"aabb\": the start ID",
+   "explain": "An ID is a complete snapshot: (state, unread input, stack). The run starts in q0 with the whole input unread and only Z on the stack.",
+   "lines": [
+    "   (q0, aabb, Z)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, aabb, Z)",
+     ""
+    ]
+   ],
+   "highlight_cells": [
+    [
+     1,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     2
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q0"
+   ],
+   "quiz": {
+    "question": "How many moves will accepting \"aabb\" take?",
+    "answer": "5",
+    "options": [
+     "4",
+     "5",
+     "6"
+    ],
+    "why": "5 moves for 4 input symbols: 2 pushes, 2 pops, 1 ε-move. The ε-moves are the ones people forget to count."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabb",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "aabb",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      }
+     ],
+     "current": 0,
+     "bottom": "Z"
+    }
+   }
+  },
+  {
+   "title": "Move 1: read a, push X on top of Z",
+   "explain": "In q0 with Z on top and a next in the input: δ(q0, a, Z) = (q0, XZ). The new symbols go on top, written to the LEFT of what was already there.",
+   "lines": [
+    "   (q0, aabb, Z)",
+    "⊢ (q0, abb, XZ)   by δ(q0, a, Z) = (q0, XZ)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, aabb, Z)",
+     ""
+    ],
+    [
+     "⊢ 1",
+     "(q0, abb, XZ)",
+     "δ(q0, a, Z) = (q0, XZ)"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     2,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q0"
+   ],
+   "extra": {
+    "stack": {
+     "input": "aabb",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "aabb",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "abb",
+       "pos": 1,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "a, Z → XZ",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      }
+     ],
+     "current": 1,
+     "bottom": "Z"
+    }
+   }
+  },
+  {
+   "title": "Move 2: read a, push X on top of X",
+   "explain": "In q0 with X on top and a next in the input: δ(q0, a, X) = (q0, XX). The new symbols go on top, written to the LEFT of what was already there.",
+   "lines": [
+    "⊢ (q0, abb, XZ)   by δ(q0, a, Z) = (q0, XZ)",
+    "⊢ (q0, bb, XXZ)   by δ(q0, a, X) = (q0, XX)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, aabb, Z)",
+     ""
+    ],
+    [
+     "⊢ 1",
+     "(q0, abb, XZ)",
+     "δ(q0, a, Z) = (q0, XZ)"
+    ],
+    [
+     "⊢ 2",
+     "(q0, bb, XXZ)",
+     "δ(q0, a, X) = (q0, XX)"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     3,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q0"
+   ],
+   "extra": {
+    "stack": {
+     "input": "aabb",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "aabb",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "abb",
+       "pos": 1,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "a, Z → XZ",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "bb",
+       "pos": 2,
+       "stack": [
+        "X",
+        "X",
+        "Z"
+       ],
+       "via": "a, X → XX",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      }
+     ],
+     "current": 2,
+     "bottom": "Z"
+    }
+   }
+  },
+  {
+   "title": "Move 3: read b, pop X",
+   "explain": "In q0 with X on top and b next in the input: δ(q0, b, X) = (q1, ε). The top symbol X is removed.",
+   "lines": [
+    "⊢ (q0, bb, XXZ)   by δ(q0, a, X) = (q0, XX)",
+    "⊢ (q1, b, XZ)   by δ(q0, b, X) = (q1, ε)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, aabb, Z)",
+     ""
+    ],
+    [
+     "⊢ 1",
+     "(q0, abb, XZ)",
+     "δ(q0, a, Z) = (q0, XZ)"
+    ],
+    [
+     "⊢ 2",
+     "(q0, bb, XXZ)",
+     "δ(q0, a, X) = (q0, XX)"
+    ],
+    [
+     "⊢ 3",
+     "(q1, b, XZ)",
+     "δ(q0, b, X) = (q1, ε)"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     4,
+     2
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q1"
+   ],
+   "extra": {
+    "stack": {
+     "input": "aabb",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "aabb",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "abb",
+       "pos": 1,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "a, Z → XZ",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "bb",
+       "pos": 2,
+       "stack": [
+        "X",
+        "X",
+        "Z"
+       ],
+       "via": "a, X → XX",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q1",
+       "rest": "b",
+       "pos": 3,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "b, X → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "X",
+       "note": ""
+      }
+     ],
+     "current": 3,
+     "bottom": "Z"
+    }
+   }
+  },
+  {
+   "title": "Move 4: read b, pop X",
+   "explain": "In q1 with X on top and b next in the input: δ(q1, b, X) = (q1, ε). The top symbol X is removed.",
+   "lines": [
+    "⊢ (q1, b, XZ)   by δ(q0, b, X) = (q1, ε)",
+    "⊢ (q1, ε, Z)   by δ(q1, b, X) = (q1, ε)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, aabb, Z)",
+     ""
+    ],
+    [
+     "⊢ 1",
+     "(q0, abb, XZ)",
+     "δ(q0, a, Z) = (q0, XZ)"
+    ],
+    [
+     "⊢ 2",
+     "(q0, bb, XXZ)",
+     "δ(q0, a, X) = (q0, XX)"
+    ],
+    [
+     "⊢ 3",
+     "(q1, b, XZ)",
+     "δ(q0, b, X) = (q1, ε)"
+    ],
+    [
+     "⊢ 4",
+     "(q1, ε, Z)",
+     "δ(q1, b, X) = (q1, ε)"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     5,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q1"
+   ],
+   "extra": {
+    "stack": {
+     "input": "aabb",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "aabb",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "abb",
+       "pos": 1,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "a, Z → XZ",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "bb",
+       "pos": 2,
+       "stack": [
+        "X",
+        "X",
+        "Z"
+       ],
+       "via": "a, X → XX",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q1",
+       "rest": "b",
+       "pos": 3,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "b, X → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "X",
+       "note": ""
+      },
+      {
+       "state": "q1",
+       "rest": "",
+       "pos": 4,
+       "stack": [
+        "Z"
+       ],
+       "via": "b, X → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "X",
+       "note": ""
+      }
+     ],
+     "current": 4,
+     "bottom": "Z"
+    }
+   }
+  },
+  {
+   "title": "Move 5: ε-move, leave the stack alone",
+   "explain": "In q1 with Z on top, reading nothing: δ(q1, ε, Z) = (q2, Z). This last ε-move is the acceptance test: it can only fire when the stack is back down to Z. Leave it out and nothing is ever accepted.",
+   "lines": [
+    "⊢ (q1, ε, Z)   by δ(q1, b, X) = (q1, ε)",
+    "⊢ (q2, ε, Z)   by δ(q1, ε, Z) = (q2, Z)",
+    "input finished ✓   q2 ∈ F ✓   →   ACCEPT",
+    "5 moves for 4 input symbols: 2 pushes, 2 pops, 1 ε-move"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, aabb, Z)",
+     ""
+    ],
+    [
+     "⊢ 1",
+     "(q0, abb, XZ)",
+     "δ(q0, a, Z) = (q0, XZ)"
+    ],
+    [
+     "⊢ 2",
+     "(q0, bb, XXZ)",
+     "δ(q0, a, X) = (q0, XX)"
+    ],
+    [
+     "⊢ 3",
+     "(q1, b, XZ)",
+     "δ(q0, b, X) = (q1, ε)"
+    ],
+    [
+     "⊢ 4",
+     "(q1, ε, Z)",
+     "δ(q1, b, X) = (q1, ε)"
+    ],
+    [
+     "⊢ 5",
+     "(q2, ε, Z)",
+     "δ(q1, ε, Z) = (q2, Z)"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     6,
+     0
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     6,
+     2
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q0\" [shape=circle];\n  \"q1\" [shape=circle];\n  \"q2\" [shape=doublecircle];\n  __start -> \"q0\";\n  \"q0\" -> \"q0\" [label=\"a, Z → XZ\\na, X → XX\"];\n  \"q0\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q1\" [label=\"b, X → ε\"];\n  \"q1\" -> \"q2\" [label=\"ε, Z → Z\"];\n}",
+   "highlight": [
+    "q2"
+   ],
+   "extra": {
+    "stack": {
+     "input": "aabb",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "aabb",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "abb",
+       "pos": 1,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "a, Z → XZ",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "bb",
+       "pos": 2,
+       "stack": [
+        "X",
+        "X",
+        "Z"
+       ],
+       "via": "a, X → XX",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q1",
+       "rest": "b",
+       "pos": 3,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "b, X → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "X",
+       "note": ""
+      },
+      {
+       "state": "q1",
+       "rest": "",
+       "pos": 4,
+       "stack": [
+        "Z"
+       ],
+       "via": "b, X → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "X",
+       "note": ""
+      },
+      {
+       "state": "q2",
+       "rest": "",
+       "pos": 4,
+       "stack": [
+        "Z"
+       ],
+       "via": "ε, Z → Z",
+       "kind": "keep",
+       "fresh": 0,
+       "popped": "",
+       "note": "ACCEPT"
+      }
+     ],
+     "current": 5,
+     "bottom": "Z"
+    }
+   }
+  },
+  {
+   "title": "Trace \"abab\": rejected",
+   "explain": "The machine has exactly one run on this string, and it does not end in an accepting configuration. A PDA need not have a move for every situation: missing transitions are how it rejects.",
+   "lines": [
+    "   (q0, abab, Z)",
+    "⊢ (q0, bab, XZ)   by δ(q0, a, Z) = (q0, XZ)",
+    "⊢ (q1, ab, Z)   by δ(q0, b, X) = (q1, ε)",
+    "⊢ (q2, ab, Z)   by δ(q1, ε, Z) = (q2, Z)",
+    "STUCK: there is no transition δ(q2, a, Z) and no ε-move on Z, but ab is still unread",
+    "→   REJECT"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition used"
+    ],
+    [
+     "start",
+     "(q0, abab, Z)",
+     ""
+    ],
+    [
+     "⊢ 1",
+     "(q0, bab, XZ)",
+     "δ(q0, a, Z) = (q0, XZ)"
+    ],
+    [
+     "⊢ 2",
+     "(q1, ab, Z)",
+     "δ(q0, b, X) = (q1, ε)"
+    ],
+    [
+     "⊢ 3",
+     "(q2, ab, Z)",
+     "δ(q1, ε, Z) = (q2, Z)"
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "Before you look: is \"abab\" accepted?",
+    "answer": "rejected",
+    "options": [
+     "accepted",
+     "rejected"
+    ],
+    "why": "It gets stuck: there is no transition δ(q2, a, Z) and no ε-move on Z, but ab is still unread."
+   },
+   "extra": {
+    "stack": {
+     "input": "abab",
+     "frames": [
+      {
+       "state": "q0",
+       "rest": "abab",
+       "pos": 0,
+       "stack": [
+        "Z"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q0",
+       "rest": "bab",
+       "pos": 1,
+       "stack": [
+        "X",
+        "Z"
+       ],
+       "via": "a, Z → XZ",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": ""
+      },
+      {
+       "state": "q1",
+       "rest": "ab",
+       "pos": 2,
+       "stack": [
+        "Z"
+       ],
+       "via": "b, X → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "X",
+       "note": ""
+      },
+      {
+       "state": "q2",
+       "rest": "ab",
+       "pos": 2,
+       "stack": [
+        "Z"
+       ],
+       "via": "ε, Z → Z",
+       "kind": "keep",
+       "fresh": 0,
+       "popped": "",
+       "note": "STUCK"
+      }
+     ],
+     "current": 3,
+     "bottom": "Z"
+    }
+   }
+  }
+ ],
+ "tests": [
+  {
+   "input": "aabb",
+   "path": "(q0, aabb, Z) ⊢* (q2, ε, Z)  (5 moves)",
+   "accepted": true
+  },
+  {
+   "input": "abab",
+   "path": "stuck at (q2, ab, Z)",
+   "accepted": false
+  }
+ ],
+ "language": "{ aⁿbⁿ : n ≥ 1 }: a block of a’s followed by a block of b’s of the same length.",
+ "conclusion": "A deterministic PDA accepting by final state. Accepted: aabb. Rejected: abab."
+}

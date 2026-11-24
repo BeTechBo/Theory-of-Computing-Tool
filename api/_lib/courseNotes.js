@@ -5,6 +5,8 @@
 //
 // Teammates: add your sessions (S09–S13, S17–S21) in the same shape.
 
+import { GRAMMAR_NOTES } from './courseNotesGrammar.js';
+
 export const SESSION_MAP = `
 Course map (CSCE 4201, Fall 2026). In scope for this tutor: S01–S21.
 S01 alphabets, strings, languages; DFA formal definition and acceptance · S02 designing DFAs: "the facts come first" (invariants, trap states)
@@ -189,7 +191,8 @@ export const NOTES = [
   5. We pick a pumping index i (typically i = 0 to pump down, or i = 2 to pump up) and show that x y^i z ∉ L.
   6. Contradiction! Therefore L is not regular.
 - Common traps: picking a specific number for p (e.g. "let p = 3" is an automatic fail); picking a string s that depends on a specific split; picking s whose length is less than p; assuming y is fixed rather than considering all legal y.`
-  }
+  },
+  ...GRAMMAR_NOTES // S17–S21 (Noor): see courseNotesGrammar.js
 ];
 
 // Pick the notes that best match. The current message counts three times as much as

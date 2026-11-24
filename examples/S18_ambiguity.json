@@ -1,0 +1,516 @@
+{
+ "technique": "ambiguity",
+ "session": "S18",
+ "input_summary": "Grammar with 3 productions over {+, a, ×}, start E: is it ambiguous?",
+ "facts": [
+  {
+   "item": "E",
+   "meaning": "an expression: a’s joined by + and × in any order"
+  }
+ ],
+ "facts_title": "What each variable generates",
+ "formal": "G = ({E}, {+, a, ×}, P, E)",
+ "steps": [
+  {
+   "title": "The grammar, and what \"ambiguous\" means",
+   "explain": "A grammar is ambiguous if some string has two DIFFERENT derivation trees (equivalently, two leftmost derivations). Two derivations of the same tree do not count: that is only leftmost versus rightmost.",
+   "lines": [
+    "G = ({E}, {+, a, ×}, P, E)",
+    "P: E → E+E | E×E | a",
+    "plan: list the strings of L(G) from the shortest, count the trees of each, stop at the first string with two"
+   ],
+   "table": [
+    [
+     "variable",
+     "productions"
+    ],
+    [
+     "→ E",
+     "E+E | E×E | a"
+    ]
+   ],
+   "highlight": [],
+   "extra": {}
+  },
+  {
+   "title": "Search: \"a+a×a\" is the shortest string with two trees",
+   "explain": "Count derivation trees, not derivations: for each string, every way of choosing productions and splitting the string is tried.",
+   "lines": [
+    "a  (length 1): 1 tree",
+    "a+a  (length 3): 1 tree",
+    "a×a  (length 3): 1 tree",
+    "a+a×a  (length 5): 2 trees   ← first string with more than one",
+    "other strings of length 5 with two trees: a+a+a, a×a+a, a×a×a"
+   ],
+   "table": [
+    [
+     "string",
+     "length",
+     "trees"
+    ],
+    [
+     "a",
+     "1",
+     "1"
+    ],
+    [
+     "a+a",
+     "3",
+     "1"
+    ],
+    [
+     "a×a",
+     "3",
+     "1"
+    ],
+    [
+     "a+a×a",
+     "5",
+     "2"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     2
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "How long is the shortest string with two derivation trees?",
+    "answer": "5",
+    "options": [
+     "3",
+     "4",
+     "5",
+     "7"
+    ],
+    "why": "Every shorter string has exactly one tree; a+a×a has two."
+   },
+   "extra": {}
+  },
+  {
+   "title": "Two trees for \"a+a×a\"",
+   "explain": "Each tree has exactly one leftmost derivation, so two different leftmost derivations prove there are two different trees.",
+   "lines": [
+    "tree 1, leftmost: E ⇒ E+E ⇒ a+E ⇒ a+E×E ⇒ a+a×E ⇒ a+a×a",
+    "tree 2, leftmost: E ⇒ E×E ⇒ E+E×E ⇒ a+E×E ⇒ a+a×E ⇒ a+a×a",
+    "they part at step 1: tree 1 uses E → E+E, tree 2 uses E → E×E",
+    "so the same string is grouped two ways: a+(a×a)  versus  (a+a)×a"
+   ],
+   "highlight": [],
+   "extra": {
+    "trees": [
+     {
+      "title": "Tree 1: a+(a×a)",
+      "tree": {
+       "label": "E",
+       "kind": "var",
+       "fresh": false,
+       "active": false,
+       "children": [
+        {
+         "label": "E",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "a",
+           "kind": "term",
+           "fresh": false
+          }
+         ]
+        },
+        {
+         "label": "+",
+         "kind": "term",
+         "fresh": false
+        },
+        {
+         "label": "E",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "E",
+           "kind": "var",
+           "fresh": false,
+           "active": false,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": false
+            }
+           ]
+          },
+          {
+           "label": "×",
+           "kind": "term",
+           "fresh": false
+          },
+          {
+           "label": "E",
+           "kind": "var",
+           "fresh": false,
+           "active": false,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": false
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     },
+     {
+      "title": "Tree 2: (a+a)×a",
+      "tree": {
+       "label": "E",
+       "kind": "var",
+       "fresh": false,
+       "active": false,
+       "children": [
+        {
+         "label": "E",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "E",
+           "kind": "var",
+           "fresh": false,
+           "active": false,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": false
+            }
+           ]
+          },
+          {
+           "label": "+",
+           "kind": "term",
+           "fresh": false
+          },
+          {
+           "label": "E",
+           "kind": "var",
+           "fresh": false,
+           "active": false,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": false
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "label": "×",
+         "kind": "term",
+         "fresh": false
+        },
+        {
+         "label": "E",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "a",
+           "kind": "term",
+           "fresh": false
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ],
+    "tree_caption": "both trees have the yield a+a×a"
+   }
+  },
+  {
+   "title": "Repair: one variable per precedence level",
+   "explain": "Give each precedence level its own variable, nested so that the tighter operator sits deeper in the tree. The left recursion (E → E + T) makes each operator group to the left, so only one tree is left.",
+   "lines": [
+    "operators, loosest first: +   <   ×   (the usual precedence; swap the levels to swap it)",
+    "level 1: E → E+T | T     (+ group to the left; anything tighter sits below, in T)",
+    "level 2: T → T×F | F     (× group to the left; anything tighter sits below, in F)",
+    "atoms: F → a",
+    "P′: E → E+T | T",
+    "P′: T → T×F | F",
+    "P′: F → a",
+    "same language: compared on every string of length ≤ 10 ✓",
+    "one tree per string: checked for every string of length ≤ 8 ✓",
+    "a+a×a now has ONE tree: E ⇒ E+T ⇒ T+T ⇒ F+T ⇒ a+T ⇒ a+T×F ⇒ a+F×F ⇒ a+a×F ⇒ a+a×a"
+   ],
+   "table": [
+    [
+     "variable",
+     "productions"
+    ],
+    [
+     "→ E",
+     "E+T | T"
+    ],
+    [
+     "T",
+     "T×F | F"
+    ],
+    [
+     "F",
+     "a"
+    ]
+   ],
+   "highlight": [],
+   "extra": {
+    "tree": {
+     "label": "E",
+     "kind": "var",
+     "fresh": false,
+     "active": false,
+     "children": [
+      {
+       "label": "E",
+       "kind": "var",
+       "fresh": false,
+       "active": false,
+       "children": [
+        {
+         "label": "T",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "F",
+           "kind": "var",
+           "fresh": false,
+           "active": false,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": false
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "label": "+",
+       "kind": "term",
+       "fresh": false
+      },
+      {
+       "label": "T",
+       "kind": "var",
+       "fresh": false,
+       "active": false,
+       "children": [
+        {
+         "label": "T",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "F",
+           "kind": "var",
+           "fresh": false,
+           "active": false,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": false
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "label": "×",
+         "kind": "term",
+         "fresh": false
+        },
+        {
+         "label": "F",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "a",
+           "kind": "term",
+           "fresh": false
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "tree_caption": "the only tree for a+a×a: a+(a×a)",
+    "diff": {
+     "rows": [
+      {
+       "lhs": "E",
+       "alts": [
+        {
+         "text": "E+E",
+         "status": "removed"
+        },
+        {
+         "text": "E×E",
+         "status": "removed"
+        },
+        {
+         "text": "a",
+         "status": "removed"
+        },
+        {
+         "text": "E+T",
+         "status": "added"
+        },
+        {
+         "text": "T",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "T",
+       "alts": [
+        {
+         "text": "T×F",
+         "status": "added"
+        },
+        {
+         "text": "F",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      },
+      {
+       "lhs": "F",
+       "alts": [
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      }
+     ],
+     "before": 3,
+     "after": 5,
+     "changed": true,
+     "note": ""
+    },
+    "grammar": {
+     "variables": [
+      "E",
+      "T",
+      "F"
+     ],
+     "terminals": [
+      "+",
+      "a",
+      "×"
+     ],
+     "start": "E",
+     "rules": [
+      {
+       "lhs": "E",
+       "rhs": [
+        "E",
+        "+",
+        "T"
+       ]
+      },
+      {
+       "lhs": "E",
+       "rhs": [
+        "T"
+       ]
+      },
+      {
+       "lhs": "T",
+       "rhs": [
+        "T",
+        "×",
+        "F"
+       ]
+      },
+      {
+       "lhs": "T",
+       "rhs": [
+        "F"
+       ]
+      },
+      {
+       "lhs": "F",
+       "rhs": [
+        "a"
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "tests": [
+  {
+   "input": "a+a×a",
+   "path": "2 trees",
+   "accepted": true
+  },
+  {
+   "input": "a",
+   "path": "1 tree",
+   "accepted": true
+  },
+  {
+   "input": "a+a",
+   "path": "1 tree",
+   "accepted": true
+  },
+  {
+   "input": "a×a",
+   "path": "1 tree",
+   "accepted": true
+  },
+  {
+   "input": "",
+   "path": "no tree at all",
+   "accepted": false
+  }
+ ],
+ "test_labels": [
+  "in L(G)",
+  "not in L(G)"
+ ],
+ "language": "The alternating strings a, a+a, a×a, a+a×a, …: a’s separated by single operators, ( a (+ | ×) )* a.",
+ "conclusion": "G is ambiguous: \"a+a×a\" (length 5) is the shortest string with two derivation trees. The repaired grammar generates the same language with one tree per string. Ambiguity is a property of the grammar, not of the language."
+}
