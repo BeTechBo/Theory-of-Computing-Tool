@@ -148,7 +148,7 @@ export function solveWith(technique, machine, strings = [], notes = {}) {
   else return { msg: bot("I can't do that one yet 🛠️. Send me a table and tell me what to do with it.", { mood: 'sad' }), machine };
 
   const finalMachine = [...solution.steps].reverse().find(s => s.extra?.machine)?.extra.machine || machine;
-  if (['subset_construction', 'eps_removal'].includes(technique) || technique.startsWith('min')) keep = finalMachine;
+  if (['subset_construction', 'eps_removal', 'thompson', 'product'].includes(technique) || technique.startsWith('min')) keep = finalMachine;
   return { msg: solutionMessage(technique, solution, selfCheck(solution, machine), finalMachine, !notes.facts), machine: keep };
 }
 
@@ -243,29 +243,50 @@ export async function respond({ text, images = [], machine, llmOn, history, prac
     }
   }
 
-  // 3. A command about the machine we already have
-  if (machine) {
-    const cmd = trimmed.match(TEST_CMD);
-    if (cmd && cmd[2].trim().length < 200 && !/[?]/.test(cmd[2])) {
-      const ss = parseStrings(cmd[2]);
-      const syms = machine.alphabet.filter(a => a !== EPS);
-      // Only a real trace command if every word is made of the machine's symbols ("test ab, ba"),
-      // so "check this nfa please" goes to the AI instead.
-      if (ss.length && ss.every(w => [...w].every(ch => syms.includes(ch)))) {
-        try {
-          return { msgs: [solveWith('dfa_trace', machine, ss).msg] };
-        } catch (e) {
-          return { msgs: [bot(e.message, { mood: 'sad' })] };
-        }
+  // 3. A test command or a command about the active machine
+  const cmd = trimmed.match(TEST_CMD);
+  if (cmd && cmd[2].trim().length < 200 && !/[?]/.test(cmd[2])) {
+    const ss = parseStrings(cmd[2]);
+    if (!machine) {
+      return {
+        msgs: [
+          bot(
+            "There's no active machine in this chat yet to test those strings on!\n\nFirst provide an automaton (for example, type `thompson: (0|1)*10` or paste an FA table), then you can test strings with `test <strings>`.",
+            { mood: 'thinking' }
+          )
+        ]
+      };
+    }
+    const syms = machine.alphabet.filter(a => a !== EPS);
+    const badChars = [...new Set(ss.flatMap(w => [...w]).filter(ch => !syms.includes(ch)))];
+    if (badChars.length) {
+      return {
+        msgs: [
+          bot(
+            `This machine's alphabet is Σ = {${syms.join(', ')}}, but your test string contains '${badChars.join("', '")}'.\n\nTry testing strings made of {${syms.join(', ')}}, e.g. \`test ${syms[0] || 'a'}${syms[1] || 'b'}, ${syms[0] || 'a'}\`.`,
+            { mood: 'thinking' }
+          )
+        ],
+        machine
+      };
+    }
+    if (ss.length) {
+      try {
+        return { msgs: [solveWith('dfa_trace', machine, ss).msg], machine };
+      } catch (e) {
+        return { msgs: [bot(e.message, { mood: 'sad' })], machine };
       }
     }
+  }
+
+  if (machine) {
     const asked = trimmed.length < 120 && !/\?\s*$/.test(trimmed) ? techniqueFromWords(trimmed) : null;
     if (asked && asked !== 'dfa_trace') {
       try {
         const { msg, machine: kept } = solveWith(pickTechnique(trimmed, machine, []), machine, []);
         return { msgs: [msg], machine: kept };
       } catch (e) {
-        return { msgs: [bot(e.message, { mood: 'sad' })] };
+        return { msgs: [bot(e.message, { mood: 'sad' })], machine };
       }
     }
   }
@@ -275,7 +296,8 @@ export async function respond({ text, images = [], machine, llmOn, history, prac
   if (thMatch) {
     try {
       const sol = solveThompson(thMatch[1].trim());
-      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), null, false)] };
+      const finalM = [...sol.steps].reverse().find(s => s.extra?.machine)?.extra.machine || null;
+      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), finalM, false)], machine: finalM };
     } catch (e) {
       return { msgs: [bot(`Thompson construction error: ${e.message}`, { mood: 'sad' })] };
     }
