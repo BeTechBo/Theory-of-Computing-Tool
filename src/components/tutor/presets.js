@@ -19,11 +19,11 @@ export const TECHNIQUES = [
   {
     group: 'Module 3 · Regular expressions (Ebram)',
     items: [
-      { id: 'regex', label: 'S09 · Regex and identities', ready: false },
-      { id: 'state_elimination', label: 'S10 · FA → regex (state elimination / Arden)', ready: false },
-      { id: 'thompson', label: 'S11 · Regex → ε-NFA (Thompson)', ready: false },
-      { id: 'product', label: 'S12 · Product construction and complement', ready: false },
-      { id: 'pumping', label: 'S13 · Pumping lemma', ready: false }
+      { id: 'regex', label: 'S09 · Regex and identities', ready: true },
+      { id: 'state_elimination', label: 'S10 · FA → regex (state elimination / Arden)', ready: true },
+      { id: 'thompson', label: 'S11 · Regex → ε-NFA (Thompson)', ready: true },
+      { id: 'product', label: 'S12 · Product construction and complement', ready: true },
+      { id: 'pumping', label: 'S13 · Pumping lemma', ready: true }
     ]
   },
   {
@@ -109,4 +109,61 @@ y2    | {y3} | {y2}
     },
     expectedFinal: ['{y3}']
   }
+];
+
+export const REGEX_PRESETS = [
+  {
+    name: 'S09 · Distributive law vs non-equivalence',
+    r1: 'a(b|c)',
+    r2: 'ab|ac',
+    equivalent: true
+  },
+  {
+    name: 'S09 · Famous trap: (a|b)* vs a*|b*',
+    r1: '(a|b)*',
+    r2: 'a*|b*',
+    equivalent: false,
+    witness: 'ab'
+  },
+  {
+    name: 'S09 · Star absorption: (a*b*)* vs (a|b)*',
+    r1: '(a*b*)*',
+    r2: '(a|b)*',
+    equivalent: true
+  }
+];
+
+export const THOMPSON_PRESETS = [
+  {
+    name: 'S11 · Ends in abb: (a|b)*abb',
+    regex: '(a|b)*abb',
+    strings: ['abb', 'aabb', 'babb', 'ab', 'b']
+  },
+  {
+    name: 'S11 · Begins & ends in 0: 0(0|1)*0',
+    regex: '0(0|1)*0',
+    strings: ['00', '010', '0110', '0', '01']
+  },
+  {
+    name: 'S11 · Star blocks: (00|11)*',
+    regex: '(00|11)*',
+    strings: ['00', '11', '0011', '01', '']
+  }
+];
+
+export const PRODUCT_PRESETS = [
+  {
+    name: 'S12 · Even a’s and ends in b',
+    table1: `state | a  | b\n→* q0 | q1 | q0\n   q1 | q0 | q1`,
+    table2: `state | a  | b\n→ s0  | s0 | s1\n* s1  | s0 | s1`,
+    op: 'intersection'
+  }
+];
+
+export const PUMPING_PRESETS_LIST = [
+  { name: 'S13 · 0ⁿ1ⁿ (Equal 0s and 1s)', key: '0ⁿ1ⁿ' },
+  { name: 'S13 · aⁿb²ⁿ (Twice as many b as a)', key: 'aⁿb²ⁿ' },
+  { name: 'S13 · ww (Duplicated strings)', key: 'ww' },
+  { name: 'S13 · 1ⁿ² (Square length)', key: '1ⁿ²' },
+  { name: 'S13 · 0ⁱ1ʲ (i > j)', key: '0ⁱ1ʲ (i > j)' }
 ];

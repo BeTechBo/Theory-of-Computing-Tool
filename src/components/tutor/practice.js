@@ -15,7 +15,10 @@ export const PRACTICE_TOPICS = [
   { technique: 'min_both', label: 'Minimise a DFA', emoji: '✂️' },
   { technique: 'eps_removal', label: 'Remove ε-moves', emoji: '🪄' },
   { technique: 'dfa_trace', label: 'Trace strings', emoji: '🧭' },
-  { technique: 'moore_mealy', label: 'Moore → Mealy', emoji: '🖨️' }
+  { technique: 'moore_mealy', label: 'Moore → Mealy', emoji: '🖨️' },
+  { technique: 'thompson', label: 'Regex → ε-NFA', emoji: '🧩' },
+  { technique: 'state_elimination', label: 'FA → Regex', emoji: '📐' },
+  { technique: 'pumping', label: 'Pumping Lemma', emoji: '🛡️' }
 ];
 
 const empty = (states, alphabet) => Object.fromEntries(states.map(q => [q, Object.fromEntries(alphabet.map(a => [a, []]))]));
@@ -152,6 +155,18 @@ export function makePractice(technique) {
   if (t === 'moore_mealy') {
     const { transducer, strings } = moore();
     return { technique: t, transducer, strings, table: transducerToTable(transducer), task: `Run this Moore machine on **${strings[0]}** (state the output length first), convert it to a Mealy machine, and check that the outputs agree.` };
+  }
+  if (t === 'thompson') {
+    const reg = pick(['(a|b)*abb', '0(0|1)*0', '(00|11)*', 'a(a|b)*b', 'a*b*c*']);
+    return { technique: t, strings: [], table: '', task: `Compile the regular expression **\`${reg}\`** into an equivalent ε-NFA using **Thompson’s inductive construction**. Predict the state count first and build the fragments inside-out.` };
+  }
+  if (t === 'state_elimination') {
+    const { machine } = traceDfa();
+    return { technique: t, machine, strings: [], table: machineToTable(machine), task: `Convert this DFA into a regular expression using **GNFA state elimination** (or Arden's lemma). Set up q_start and q_accept with ε-moves, choose an elimination order, and update labels.` };
+  }
+  if (t === 'pumping') {
+    const lang = pick(['0ⁿ1ⁿ (Equal 0s and 1s)', 'aⁿb²ⁿ (Twice as many b as a)', 'ww (Duplicated strings)', '0ⁱ1ʲ (i > j)']);
+    return { technique: t, strings: [], table: '', task: `Prove that **${lang}** is **not regular** using the 5-step **Pumping Lemma adversary recipe**. State the assumption, pick string s in terms of p, analyze all splits xyz with |xy| ≤ p, and pump to find a contradiction.` };
   }
   throw new Error('Unknown practice topic.');
 }

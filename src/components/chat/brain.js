@@ -14,6 +14,11 @@ import { solveMinimise } from '../tutor/techniques/minimise.js';
 import { solveEpsClosure, solveEpsRemoval } from '../tutor/techniques/epsilon.js';
 import { looksLikeTransducer, parseTransducer, solveMooreMealy } from '../tutor/techniques/mooreMealy.js';
 import { solveDesign } from '../tutor/techniques/dfaDesign.js';
+import { solveThompson } from '../tutor/techniques/thompson.js';
+import { solveStateElimination } from '../tutor/techniques/stateElimination.js';
+import { solveProductConstruction, solveComplement } from '../tutor/techniques/productConstruction.js';
+import { solveRegexIdentities } from '../tutor/techniques/regexIdentities.js';
+import { solvePumpingLemma } from '../tutor/techniques/pumpingLemma.js';
 import { validateContract, selfCheck } from '../tutor/checks.js';
 import { SUBSET_PRESETS, TECHNIQUES } from '../tutor/presets.js';
 import { analyze, readAttempt } from './llmClient.js';
@@ -85,6 +90,11 @@ function techniqueFromWords(text) {
   if (/closure|ε-cl|e-cl/.test(t)) return 'eps_closure';
   if (/(remove|removing|eliminat|kill|get rid).{0,20}(ε|eps|epsilon|lambda)|(ε|epsilon|eps)[\s-]*(free|removal)/.test(t)) return 'eps_removal';
   if (/(to|into|a|equivalent) dfa|subset|powerset|determini[sz]/.test(t)) return 'subset_construction';
+  if (/state[\s-]*elim|gnfa|arden|to regex|into regex/.test(t)) return 'state_elimination';
+  if (/thompson|regex to|to nfa|build nfa|fragment/.test(t)) return 'thompson';
+  if (/product|cartesian|intersection|union of dfa/.test(t)) return 'product';
+  if (/pumping|not regular|non-regular|prove.*not regular/.test(t)) return 'pumping';
+  if (/regex identit|equivalent regex|regex compare/.test(t)) return 'regex';
   if (/\b(trace|test|run|accept)/.test(t)) return 'dfa_trace';
   return null;
 }
@@ -109,7 +119,12 @@ const INTRO = {
   eps_closure: "Here are the **ε-closures**, then each string traced as close → move → close.",
   eps_removal: "Here's the **ε-removal**: closures, then δ′ one entry per line, then F′ (that's where the marks are).",
   moore_mealy: "Here's the machine run step by step, then **converted** to the other kind and checked.",
-  dfa_design: "Here's the design, **facts first**, following the 5-step recipe."
+  dfa_design: "Here's the design, **facts first**, following the 5-step recipe.",
+  thompson: "Here's **Thompson's construction**, building the ε-NFA fragments inside-out.",
+  state_elimination: "Here's **state elimination (GNFA)**, bypassing states one by one until only the regex remains.",
+  product: "Here's the **product construction**, computing pair transitions and accepting states.",
+  regex: "Here's the **regular expression comparison and identities** analysis.",
+  pumping: "Here's the **Pumping Lemma proof**, establishing contradiction with the 5-step recipe."
 };
 
 // Run a code technique on a machine and wrap the result as a chat message.
@@ -126,6 +141,11 @@ export function solveWith(technique, machine, strings = [], notes = {}) {
     solution = solveMinimise(machine, { min_both: 'both', min_partition: 'partition', min_table: 'table' }[technique] || 'both', notes);
   } else if (technique === 'eps_closure') solution = solveEpsClosure(machine, strings, notes);
   else if (technique === 'eps_removal') solution = solveEpsRemoval(machine, notes);
+  else if (technique === 'state_elimination') solution = solveStateElimination(machine);
+  else if (technique === 'product') solution = solveProductConstruction(machine);
+  else if (technique === 'thompson') solution = solveThompson(notes.regex || 'a(a|b)*b', strings);
+  else if (technique === 'regex') solution = solveRegexIdentities(notes.r1 || '(a|b)*', notes.r2 || 'a*|b*', strings);
+  else if (technique === 'pumping') solution = solvePumpingLemma(notes.key || '0ⁿ1ⁿ');
   else return { msg: bot("I can't do that one yet 🛠️. Send me a table and tell me what to do with it.", { mood: 'sad' }), machine };
 
   const finalMachine = [...solution.steps].reverse().find(s => s.extra?.machine)?.extra.machine || machine;
@@ -259,6 +279,38 @@ async function respondAutomata({ text, images = [], machine, llmOn, history, pra
       } catch (e) {
         return { msgs: [bot(e.message, { mood: 'sad' })] };
       }
+    }
+  }
+
+  // 3b. Module 3 direct commands (Thompson, Pumping Lemma, Regex Identities)
+  const thMatch = trimmed.match(/^(?:thompson|regex to (?:ε-)?nfa)\s*[:=]?\s*(.+)$/i);
+  if (thMatch) {
+    try {
+      const sol = solveThompson(thMatch[1].trim());
+      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), null, false)] };
+    } catch (e) {
+      return { msgs: [bot(`Thompson construction error: ${e.message}`, { mood: 'sad' })] };
+    }
+  }
+
+  const pumpMatch = trimmed.match(/^(?:pumping(?: lemma)?|prove not regular)\s*[:=]?\s*(.*)$/i);
+  if (pumpMatch) {
+    try {
+      const key = pumpMatch[1].trim() || '0ⁿ1ⁿ';
+      const sol = solvePumpingLemma(key);
+      return { msgs: [solutionMessage('pumping', sol, selfCheck(sol, null), null, false)] };
+    } catch (e) {
+      return { msgs: [bot(`Pumping lemma error: ${e.message}`, { mood: 'sad' })] };
+    }
+  }
+
+  const compMatch = trimmed.match(/^r1\s*[:=]\s*(.+?)\s*r2\s*[:=]\s*(.+)$/i) || trimmed.match(/^(?:compare|identit(?:y|ies))\s*[:=]?\s*(.+?)\s*(?:vs|and|,)\s*(.+)$/i);
+  if (compMatch) {
+    try {
+      const sol = solveRegexIdentities(compMatch[1].trim(), compMatch[2].trim());
+      return { msgs: [solutionMessage('regex', sol, selfCheck(sol, null), null, false)] };
+    } catch (e) {
+      return { msgs: [bot(`Regex identities error: ${e.message}`, { mood: 'sad' })] };
     }
   }
 
@@ -413,6 +465,20 @@ function practiceMessage(text, current) {
 function solvePractice(p) {
   try {
     if (p.transducer) return { msgs: [solutionMessage('moore_mealy', solveMooreMealy(p.transducer, p.strings || []), [], null, false)] };
+    if (p.technique === 'thompson') {
+      const regMatch = p.task.match(/\*\*`([^`]+)`\*\*/);
+      const reg = regMatch ? regMatch[1] : '(a|b)*abb';
+      const sol = solveThompson(reg);
+      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), null, false)] };
+    }
+    if (p.technique === 'pumping') {
+      const sol = solvePumpingLemma('0ⁿ1ⁿ');
+      return { msgs: [solutionMessage('pumping', sol, selfCheck(sol, null), null, false)] };
+    }
+    if (p.technique === 'state_elimination') {
+      const sol = solveStateElimination(p.machine);
+      return { msgs: [solutionMessage('state_elimination', sol, selfCheck(sol, null), null, false)] };
+    }
     const { msg } = solveWith(p.technique, p.machine, p.strings || []);
     return { msgs: [{ ...msg, text: `Here's the full solution. Compare it with yours, or switch on **🤔 Quiz me** to guess each step first.` }] };
   } catch (e) {

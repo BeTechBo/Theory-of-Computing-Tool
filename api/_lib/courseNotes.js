@@ -102,6 +102,96 @@ export const NOTES = [
 - Mealy → Moore: states are pairs [q, c] (state, last printed symbol); λ′([q,c]) = c; δ′([q,c], a) = [δ(q,a), λ(q,a)]; start [q0, c0] with c0 arbitrary (it only affects the dropped first symbol). Keep reachable pairs only. A state splits when the arrows entering it print different symbols; at most |Q|×|Δ| states.
 - Example: Moore counter of b's mod 3 on babba prints 0 1 1 2 0 0 (six symbols); the Mealy version prints 1 1 2 0 0.`
   },
+  {
+    session: 'S09',
+    title: 'Regular expressions, algebraic identities, and equivalence',
+    keywords: ['regex', 'regular expression', 'identity', 'identities', 'algebraic', 'equivalent', 'arden', 'witness', 'star', 'kleene', 'union', 'concatenation'],
+    text: `
+- Regular expressions over Σ: base cases ∅ (empty language), ε (empty string), a ∈ Σ. Operations: union r₁|r₂, concatenation r₁r₂, Kleene star r*.
+- Precedence: star * highest, then concatenation, then union | lowest. Use parentheses to override.
+- Key identities:
+  - ∅ is identity for union: R | ∅ = ∅ | R = R.
+  - ∅ is annihilator for concat: R ∅ = ∅ R = ∅.
+  - ε is identity for concat: R ε = ε R = R.
+  - Idempotence: R | R = R.
+  - Star expansion: R* = ε | R R* = ε | R* R; (R*)* = R*; ∅* = ε.
+  - Union & star: (R | S)* = (R* S*)* = (R* | S*)*.
+- Proving identities: show two languages are equal either via established algebraic laws or mutual inclusion (L(R₁) ⊆ L(R₂) and L(R₂) ⊆ L(R₁)).
+- Disproving equivalence: find one WITNESS string w such that w ∈ L(R₁) but w ∉ L(R₂) (or vice-versa), stating clearly which accepts and which rejects.
+- Common traps: (ab)* ≠ a*b*; ∅* = ε (never ∅); (a|b)* ≠ a*|b*.`
+  },
+  {
+    session: 'S10',
+    title: 'FA to regex: GNFA state elimination and Arden\'s lemma',
+    keywords: ['state elimination', 'gnfa', 'arden', 'fa to regex', 'dfa to regex', 'nfa to regex', 'eliminate', 'rip', 'generalized'],
+    text: `
+- Recipe for GNFA State Elimination:
+  1. Add a fresh start state q_start with an ε-arrow to the original start state q0.
+  2. Add a fresh accept state q_accept with ε-arrows from every state in F.
+  3. Original final states become non-final; arrows carry regular expressions.
+  4. Pick an intermediate state q to eliminate (justify the elimination order).
+  5. For every predecessor p and successor r of q, update the edge:
+     R_new(p, r) = R(p, r) | R(p, q) · (R(q, q))* · R(q, r).
+     If p has no direct edge to r, R(p, r) = ∅. If q has no self-loop, (R(q, q))* = ε.
+  6. Repeat until only q_start and q_accept remain. The expression on the arrow between them is the final regex!
+- Arden's Lemma: if X = AX | B and ε ∉ A, then X = A*B is the unique solution. For systems of equations: write one equation per state q = ∪ (label · next_state) + (ε if q ∈ F), then substitute and apply Arden's lemma to solve for start state q0.
+- Common traps: forgetting (R(q,q))* when q has a self-loop (e.g. writing R(p,q)R(q,r) instead of R(p,q)R(q,q)*R(q,r)); not creating fresh q_start and q_accept.`
+  },
+  {
+    session: 'S11',
+    title: 'Regex to ε-NFA: Thompson\'s inductive construction',
+    keywords: ['thompson', 'regex to nfa', 'inductive construction', 'fragments', 'regex to ε-nfa', 'state count'],
+    text: `
+- Inductive Thompson construction compiles a regex into an equivalent ε-NFA with EXACTLY one start state (no incoming arrows) and one accept state (no outgoing arrows).
+- Base fragments:
+  - Symbol a: (start) —a→ (accept)  [2 states, 1 transition]
+  - Epsilon ε: (start) —ε→ (accept)  [2 states, 1 transition]
+  - Empty set ∅: (start)   (accept)   [2 states, 0 transitions]
+- Inductive compositions:
+  - Concatenation r₁r₂: merge or connect accept(M₁) —ε→ start(M₂). Total states: |Q₁| + |Q₂|.
+  - Union r₁|r₂: fresh start with ε-arrows to start(M₁) and start(M₂); accepts of M₁ and M₂ connect via ε to fresh accept. Total states: |Q₁| + |Q₂| + 2.
+  - Star r*: fresh start with ε-arrow to start(M) and bypass ε-arrow to fresh accept; accept(M) has loopback ε-arrow to start(M) and ε-arrow to fresh accept. Total states: |Q| + 2.
+- Predict state count first: break down expression into its syntax tree, predict states, build inside-out step by step, and trace test strings.
+- Common traps: missing the bypass ε in star (breaks ε acceptance); forgetting that Thompson NFAs always have a single accept state.`
+  },
+  {
+    session: 'S12',
+    title: 'Closure properties: product construction and complement',
+    keywords: ['closure', 'product construction', 'complement', 'intersection', 'union', 'difference', 'cartesian', 'pairs'],
+    text: `
+- Product construction builds a machine for L(M₁) ∩ L(M₂), L(M₁) ∪ L(M₂), or L(M₁) \\ L(M₂).
+- Given complete DFAs M₁ = (Q₁, Σ, δ₁, q₀₁, F₁) and M₂ = (Q₂, Σ, δ₂, q₀₂, F₂):
+  - States: Cartesian product pairs [p, q] for p ∈ Q₁ and q ∈ Q₂ (|Q₁|×|Q₂| states).
+  - Start state: [q₀₁, q₀₂].
+  - Transition: δ([p, q], a) = [δ₁(p, a), δ₂(q, a)] for every symbol a ∈ Σ.
+  - Accepting states F_prod determine the operation:
+    - Intersection (∩): both must accept → F = { [p, q] | p ∈ F₁ and q ∈ F₂ }
+    - Union (∪): at least one accepts → F = { [p, q] | p ∈ F₁ or q ∈ F₂ }
+    - Difference (\\): p ∈ F₁ and q ∉ F₂
+- Complement: swap accepting and non-accepting states (F' = Q \\ F).
+- CRITICAL RULE: Complement and product construction REQUIRE the DFA to be COMPLETE. If a DFA has missing arrows, a dead/trap state must be added before complementing!
+- Common traps: complementing an NFA by swapping states (wrong! NFA complement requires converting to complete DFA first); forgetting unreachable pairs.`
+  },
+  {
+    session: 'S13',
+    title: 'Pumping lemma for regular languages',
+    keywords: ['pumping', 'pumping lemma', 'non-regular', 'not regular', 'adversary', 'contradiction', 'xyz', 'pigeonhole'],
+    text: `
+- Purpose: prove a language is NOT regular. (It cannot be used to prove a language IS regular).
+- Statement: If L is regular, ∃ integer p ≥ 1 such that ∀ string s ∈ L with |s| ≥ p, ∃ split s = xyz satisfying:
+  1. |xy| ≤ p
+  2. |y| ≥ 1  (y ≠ ε)
+  3. ∀ i ≥ 0: x y^i z ∈ L.
+- The 5-step Adversary Recipe:
+  1. Assume L is regular for contradiction.
+  2. Adversary picks pumping length p ≥ 1 (we treat p as an unknown constant).
+  3. We pick a clever string s ∈ L such that |s| ≥ p (expressed in terms of p, e.g. s = 0^p 1^p, s = a^p b^p, s = w w^R).
+  4. Adversary chooses legal partition s = xyz with |xy| ≤ p and |y| ≥ 1.
+     Because |xy| ≤ p, y is entirely confined within the first p characters of s!
+  5. We pick a pumping index i (typically i = 0 to pump down, or i = 2 to pump up) and show that x y^i z ∉ L.
+  6. Contradiction! Therefore L is not regular.
+- Common traps: picking a specific number for p (e.g. "let p = 3" is an automatic fail); picking a string s that depends on a specific split; picking s whose length is less than p; assuming y is fixed rather than considering all legal y.`
+  },
   ...GRAMMAR_NOTES // S17–S21 (Noor): see courseNotesGrammar.js
 ];
 
