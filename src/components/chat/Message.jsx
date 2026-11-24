@@ -302,15 +302,18 @@ function AnswerCard({ answer }) {
 
 // A fresh practice exercise made by code.
 function PracticeCard({ practice, text }) {
-  const dot = practice.transducer ? transducerDot(practice.transducer) : machineToDot(practice.machine);
+  // Regex and pumping-lemma exercises have no machine: show the task alone instead of a table and a diagram
+  const dot = practice.transducer ? transducerDot(practice.transducer) : practice.machine ? machineToDot(practice.machine) : null;
   return (
     <div className="rounded-3xl rounded-tl-lg bg-gradient-to-br from-amber-50 to-white border-2 border-amber-100 px-5 py-4 font-round text-[15px] text-slate-700 shadow-sm space-y-3">
       <p className="text-xs font-bold uppercase tracking-wide text-amber-700">🎲 Practice exercise</p>
       <div className="text-slate-900 font-semibold"><RichText text={text} /></div>
-      <div className="grid md:grid-cols-2 gap-3 items-center">
-        <pre className="font-mono text-[13px] bg-white border border-slate-200 rounded-xl px-3 py-2 overflow-x-auto whitespace-pre">{practice.table}</pre>
-        <div className="rounded-xl bg-white border border-slate-200 p-2"><GraphView dot={dot} /></div>
-      </div>
+      {dot && (
+        <div className="grid md:grid-cols-2 gap-3 items-center">
+          <pre className="font-mono text-[13px] bg-white border border-slate-200 rounded-xl px-3 py-2 overflow-x-auto whitespace-pre">{practice.table}</pre>
+          <div className="rounded-xl bg-white border border-slate-200 p-2"><GraphView dot={dot} /></div>
+        </div>
+      )}
       <p className="text-sm text-slate-500">Try it on paper first. Then send me a photo of your work (📸 Check my answer) and I'll find your first mistake and estimate your mark.</p>
     </div>
   );

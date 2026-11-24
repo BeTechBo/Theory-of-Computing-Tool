@@ -24,7 +24,7 @@ Controls you will use: **Next** (or the → key) walks one step forward, **Prev*
 
 > "ChatGPT gives you the final answer. Our exam gives most of its marks to the *method*: the table after every round, the grammar after every step, every ID of a trace. Stately solves each technique the way the course marks it, one step at a time, and code checks every answer."
 
-Show the welcome screen. Point at the six cards: three modules, one chat box.
+Show the welcome screen. Point at the eight cards: three modules, one chat box.
 
 ## 0:30 – 1:30 · Module 1–2: NFA → DFA by the subset construction (Adham)
 
