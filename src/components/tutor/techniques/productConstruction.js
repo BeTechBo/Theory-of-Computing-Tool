@@ -6,9 +6,9 @@ import { EPS, EMPTY, machineToDot, accepts, stringsUpTo, setName, pickTests } fr
 
 const pairName = (p, q) => `[${p},${q}]`;
 
-// Ensure DFA has all transitions; add dead state if needed
-function makeCompleteDfa(m) {
-  const syms = m.alphabet.filter(a => a !== EPS);
+// Ensure DFA has all transitions over targetSyms; add dead state if needed
+function makeCompleteDfa(m, targetSyms = null) {
+  const syms = targetSyms || m.alphabet.filter(a => a !== EPS);
   let deadNeeded = false;
   m.states.forEach(q => {
     syms.forEach(a => {
@@ -43,17 +43,16 @@ function makeCompleteDfa(m) {
   };
 }
 
-export function solveProductConstruction(m1Input, m2Input, operation = 'both') {
+export function solveProductConstruction(m1Input, m2Input, operation = 'intersection') {
   // If only one machine is given or operation is complement
   if (!m2Input || operation === 'complement') {
     return solveComplement(m1Input);
   }
 
-  const m1 = makeCompleteDfa(m1Input);
-  const m2 = makeCompleteDfa(m2Input);
-
   // Common alphabet
-  const syms = Array.from(new Set([...m1.alphabet, ...m2.alphabet])).filter(a => a !== EPS).sort();
+  const syms = Array.from(new Set([...m1Input.alphabet, ...m2Input.alphabet])).filter(a => a !== EPS).sort();
+  const m1 = makeCompleteDfa(m1Input, syms);
+  const m2 = makeCompleteDfa(m2Input, syms);
   const steps = [];
 
   // 1. Setup & Pairs definition
@@ -134,7 +133,11 @@ export function solveProductConstruction(m1Input, m2Input, operation = 'both') {
     .filter(([p, q]) => m1.final.includes(p) || m2.final.includes(q))
     .map(([p, q]) => pairName(p, q));
 
-  const activeFinal = operation === 'intersection' ? interFinal : unionFinal;
+  const diffFinal = reachablePairs
+    .filter(([p, q]) => m1.final.includes(p) && !m2.final.includes(q))
+    .map(([p, q]) => pairName(p, q));
+
+  const activeFinal = operation === 'intersection' ? interFinal : operation === 'difference' ? diffFinal : unionFinal;
 
   const productMachine = {
     states: reachableNames,
@@ -172,7 +175,7 @@ export function solveProductConstruction(m1Input, m2Input, operation = 'both') {
   const tests = testWords.map(w => {
     const in1 = accepts(m1, w);
     const in2 = accepts(m2, w);
-    const ok = operation === 'intersection' ? (in1 && in2) : (in1 || in2);
+    const ok = operation === 'intersection' ? (in1 && in2) : operation === 'difference' ? (in1 && !in2) : (in1 || in2);
     return {
       input: w === '' ? EPS : w,
       path: `in M₁: ${in1 ? '✓' : '✗'}, in M₂: ${in2 ? '✓' : '✗'}`,
@@ -180,7 +183,7 @@ export function solveProductConstruction(m1Input, m2Input, operation = 'both') {
     };
   });
 
-  const opLabel = operation === 'intersection' ? 'Intersection (L₁ ∩ L₂)' : 'Union (L₁ ∪ L₂)';
+  const opLabel = operation === 'intersection' ? 'Intersection (L₁ ∩ L₂)' : operation === 'difference' ? 'Difference (L₁ \\ L₂)' : 'Union (L₁ ∪ L₂)';
 
   return {
     technique: 'product',

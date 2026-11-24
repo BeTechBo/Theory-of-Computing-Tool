@@ -445,7 +445,8 @@ function practiceMessage(text, current) {
   // Topic buttons send their label (e.g. "NFA → DFA"), so match labels first.
   const byLabel = PRACTICE_TOPICS.find(t => text.toLowerCase().includes(t.label.toLowerCase()));
   const words = byLabel ? (byLabel.technique === 'min_both' ? 'min_both' : byLabel.technique) : techniqueFromWords(text) || '';
-  let topic = /moore|mealy|output/i.test(text) ? 'moore_mealy' : words.startsWith('min') ? 'min_both' : words.startsWith('eps') ? 'eps_removal' : words === 'subset_construction' || words === 'dfa_trace' ? words : null;
+  const supported = new Set(['moore_mealy', 'subset_construction', 'dfa_trace', 'thompson', 'state_elimination', 'pumping']);
+  let topic = /moore|mealy|output/i.test(text) ? 'moore_mealy' : words.startsWith('min') ? 'min_both' : words.startsWith('eps') ? 'eps_removal' : supported.has(words) ? words : null;
   if (!topic && /^\s*(another|one more)/i.test(text) && current) topic = current.technique;
   if (!topic) {
     return {
@@ -477,10 +478,13 @@ function solvePractice(p) {
       const regMatch = p.task.match(/\*\*`([^`]+)`\*\*/);
       const reg = regMatch ? regMatch[1] : '(a|b)*abb';
       const sol = solveThompson(reg);
-      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), null, false)] };
+      const finalM = [...sol.steps].reverse().find(s => s.extra?.machine)?.extra.machine || null;
+      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), finalM, false)], machine: finalM };
     }
     if (p.technique === 'pumping') {
-      const sol = solvePumpingLemma('0ⁿ1ⁿ');
+      const langMatch = p.task.match(/Prove that \*\*([^*]+)\*\*/);
+      const key = langMatch ? langMatch[1] : '0ⁿ1ⁿ';
+      const sol = solvePumpingLemma(key);
       return { msgs: [solutionMessage('pumping', sol, selfCheck(sol, null), null, false)] };
     }
     if (p.technique === 'state_elimination') {
