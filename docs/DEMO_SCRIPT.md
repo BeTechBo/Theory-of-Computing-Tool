@@ -35,10 +35,19 @@ Show the welcome screen. Point at the six cards: three modules, one chat box.
 
 ## 1:30 – 2:15 · Module 3: FA → regular expression by state elimination (Ebram)
 
-> Ebram's module plugs into the same step player. If it is not merged on demo day, use the fallback below so the timing still works.
+1. Click **New chat** and paste a DFA with the instruction above it (any DFA table works; this one is strings ending in a):
 
-- **If merged:** paste the DFA from A2 Q3, press **Next** through two eliminations, and point at the label written in full: `R(p,r) + R(p,q) R(q,q)* R(q,r)`. Say the trap out loud: "the star stays when the removed state has a self-loop".
-- **Fallback (works today):** click **🎲 Practice → Minimise a DFA**, then **👀 Show the solution** and switch on **🤔 Quiz me** for one step. Say: "Every technique also generates fresh exercises and quizzes you before each step."
+   ```
+   Convert to a regex by state elimination
+   state | a  | b
+   → q0  | q1 | q0
+   * q1  | q1 | q0
+   ```
+
+2. Press **Next** through two eliminations and point at the label written in full: `R(p,r) | R(p,q) R(q,q)* R(q,r)`. Say the trap out loud: "the star stays when the removed state has a self-loop".
+3. If there is time, click the card **🧩 Regex → ε-NFA** on a new chat to show the opposite direction (Thompson).
+
+- **Fallback if a step misbehaves:** click **🎲 Practice → Minimise a DFA**, then **👀 Show the solution** and switch on **🤔 Quiz me** for one step. Say: "Every technique also generates fresh exercises and quizzes you before each step."
 
 ## 2:15 – 3:30 · Module 5: Chomsky normal form (Noor)
 
