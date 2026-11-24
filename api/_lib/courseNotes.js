@@ -107,33 +107,35 @@ export const NOTES = [
     text: `
 - Regular expressions over Σ: base cases ∅ (empty language), ε (empty string), a ∈ Σ. Operations: union r₁|r₂, concatenation r₁r₂, Kleene star r*.
 - Precedence: star * highest, then concatenation, then union | lowest. Use parentheses to override.
-- Key identities:
+- Key identities (memorise these):
   - ∅ is identity for union: R | ∅ = ∅ | R = R.
   - ∅ is annihilator for concat: R ∅ = ∅ R = ∅.
   - ε is identity for concat: R ε = ε R = R.
   - Idempotence: R | R = R.
-  - Star expansion: R* = ε | R R* = ε | R* R; (R*)* = R*; ∅* = ε.
+  - Star expansion: R* = ε | R R* = ε | R* R; (R*)* = R*; ∅* = ε (never ∅).
   - Union & star: (R | S)* = (R* S*)* = (R* | S*)*.
 - Proving identities: show two languages are equal either via established algebraic laws or mutual inclusion (L(R₁) ⊆ L(R₂) and L(R₂) ⊆ L(R₁)).
-- Disproving equivalence: find one WITNESS string w such that w ∈ L(R₁) but w ∉ L(R₂) (or vice-versa), stating clearly which accepts and which rejects.
-- Common traps: (ab)* ≠ a*b*; ∅* = ε (never ∅); (a|b)* ≠ a*|b*.`
+- Disproving equivalence: find one WITNESS string w such that w ∈ L(R₁) but w ∉ L(R₂) (or vice-versa), stating clearly which accepts and which rejects. A single witness string disproves equivalence completely.
+- Common traps: (ab)* ≠ a*b*; ∅* = ε (never ∅); (a|b)* ≠ a*|b*.
+- Example: To show (a|b)* ≠ a*|b*, witness is ab (ab ∈ L((a|b)*) but ab ∉ L(a*|b*)).`
   },
   {
     session: 'S10',
     title: 'FA to regex: GNFA state elimination and Arden\'s lemma',
     keywords: ['state elimination', 'gnfa', 'arden', 'fa to regex', 'dfa to regex', 'nfa to regex', 'eliminate', 'rip', 'generalized'],
     text: `
-- Recipe for GNFA State Elimination:
+- Recipe for GNFA State Elimination (the course's method):
   1. Add a fresh start state q_start with an ε-arrow to the original start state q0.
   2. Add a fresh accept state q_accept with ε-arrows from every state in F.
   3. Original final states become non-final; arrows carry regular expressions.
   4. Pick an intermediate state q to eliminate (justify the elimination order).
   5. For every predecessor p and successor r of q, update the edge:
-     R_new(p, r) = R(p, r) | R(p, q) · (R(q, q))* · R(q, r).
-     If p has no direct edge to r, R(p, r) = ∅. If q has no self-loop, (R(q, q))* = ε.
+     R_new(p, r) = R_old(p, r) | R(p, q) · (R(q, q))* · R(q, r).
+     If p has no direct edge to r, R_old(p, r) = ∅. If q has no self-loop, (R(q, q))* = ε.
   6. Repeat until only q_start and q_accept remain. The expression on the arrow between them is the final regex!
 - Arden's Lemma: if X = AX | B and ε ∉ A, then X = A*B is the unique solution. For systems of equations: write one equation per state q = ∪ (label · next_state) + (ε if q ∈ F), then substitute and apply Arden's lemma to solve for start state q0.
-- Common traps: forgetting (R(q,q))* when q has a self-loop (e.g. writing R(p,q)R(q,r) instead of R(p,q)R(q,q)*R(q,r)); not creating fresh q_start and q_accept.`
+- Common traps: forgetting (R(q,q))* when q has a self-loop (writing R(p,q)R(q,r) instead of R(p,q)R(q,q)*R(q,r) loses most marks on this question); forgetting to add fresh q_start and q_accept.
+- Example: Two-state machine q0 —a→ q1, q1 —b→ q0, F = {q0}: eliminating q1 adds a self-loop ab on q0, giving final regex (ab)*.`
   },
   {
     session: 'S11',
@@ -150,7 +152,8 @@ export const NOTES = [
   - Union r₁|r₂: fresh start with ε-arrows to start(M₁) and start(M₂); accepts of M₁ and M₂ connect via ε to fresh accept. Total states: |Q₁| + |Q₂| + 2.
   - Star r*: fresh start with ε-arrow to start(M) and bypass ε-arrow to fresh accept; accept(M) has loopback ε-arrow to start(M) and ε-arrow to fresh accept. Total states: |Q| + 2.
 - Predict state count first: break down expression into its syntax tree, predict states, build inside-out step by step, and trace test strings.
-- Common traps: missing the bypass ε in star (breaks ε acceptance); forgetting that Thompson NFAs always have a single accept state.`
+- Common traps: missing the bypass ε in star (which breaks ε acceptance); forgetting that Thompson NFAs always have a single accept state.
+- Example: Regex (a|b)*abb decomposes into base symbols a and b, union (a|b) (4 states), star (a|b)* (6 states), concatenated with a, b, b to yield an ε-NFA with 12 states.`
   },
   {
     session: 'S12',
@@ -163,12 +166,13 @@ export const NOTES = [
   - Start state: [q₀₁, q₀₂].
   - Transition: δ([p, q], a) = [δ₁(p, a), δ₂(q, a)] for every symbol a ∈ Σ.
   - Accepting states F_prod determine the operation:
-    - Intersection (∩): both must accept → F = { [p, q] | p ∈ F₁ and q ∈ F₂ }
-    - Union (∪): at least one accepts → F = { [p, q] | p ∈ F₁ or q ∈ F₂ }
-    - Difference (\\): p ∈ F₁ and q ∉ F₂
+    - Intersection (∩): both must accept → F = { [p, q] | p ∈ F₁ and q ∈ F₂ } = F₁ × F₂.
+    - Union (∪): at least one accepts → F = { [p, q] | p ∈ F₁ or q ∈ F₂ }.
+    - Difference (\\): p ∈ F₁ and q ∉ F₂.
 - Complement: swap accepting and non-accepting states (F' = Q \\ F).
 - CRITICAL RULE: Complement and product construction REQUIRE the DFA to be COMPLETE. If a DFA has missing arrows, a dead/trap state must be added before complementing!
-- Common traps: complementing an NFA by swapping states (wrong! NFA complement requires converting to complete DFA first); forgetting unreachable pairs.`
+- Common traps: complementing an NFA by swapping states (wrong! Automatic zero marks; an NFA must be converted to a complete DFA first); forgetting unreachable pairs.
+- Example: Even a's (2 states) ∩ ends in b (2 states) yields a 4-state product DFA with start [even, not_b] and accepting set {[even, ends_b]}.`
   },
   {
     session: 'S13',
@@ -179,16 +183,17 @@ export const NOTES = [
 - Statement: If L is regular, ∃ integer p ≥ 1 such that ∀ string s ∈ L with |s| ≥ p, ∃ split s = xyz satisfying:
   1. |xy| ≤ p
   2. |y| ≥ 1  (y ≠ ε)
-  3. ∀ i ≥ 0: x y^i z ∈ L.
+  3. ∀ i ≥ 0: x yⁱ z ∈ L.
 - The 5-step Adversary Recipe:
   1. Assume L is regular for contradiction.
-  2. Adversary picks pumping length p ≥ 1 (we treat p as an unknown constant).
-  3. We pick a clever string s ∈ L such that |s| ≥ p (expressed in terms of p, e.g. s = 0^p 1^p, s = a^p b^p, s = w w^R).
+  2. Adversary picks pumping length p ≥ 1 (we treat p as an unknown constant, never pick a number!).
+  3. We pick a clever string s ∈ L such that |s| ≥ p (expressed in terms of p, e.g. s = 0ᵖ 1ᵖ, s = aᵖ bᵖ, s = w w).
   4. Adversary chooses legal partition s = xyz with |xy| ≤ p and |y| ≥ 1.
      Because |xy| ≤ p, y is entirely confined within the first p characters of s!
-  5. We pick a pumping index i (typically i = 0 to pump down, or i = 2 to pump up) and show that x y^i z ∉ L.
+  5. We pick a pumping index i (typically i = 0 to pump down, or i = 2 to pump up) and show that x yⁱ z ∉ L.
   6. Contradiction! Therefore L is not regular.
-- Common traps: picking a specific number for p (e.g. "let p = 3" is an automatic fail); picking a string s that depends on a specific split; picking s whose length is less than p; assuming y is fixed rather than considering all legal y.`
+- Common traps: picking a specific number for p (e.g. "let p = 3" is an automatic fail); picking a string s that depends on a specific split; picking s whose length is less than p; assuming y is fixed rather than considering all legal y.
+- Example: For L = {0ⁿ 1ⁿ | n ≥ 0}, pick s = 0ᵖ 1ᵖ (|s| = 2p ≥ p). Since |xy| ≤ p, y = 0ᵐ with m ≥ 1. Pumping i = 2 gives 0ᵖ⁺ᵐ 1ᵖ ∉ L because #0 > #1. Contradiction: L is not regular.`
   }
 ];
 
