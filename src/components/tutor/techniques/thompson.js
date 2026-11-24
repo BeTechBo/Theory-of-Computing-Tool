@@ -1,7 +1,7 @@
 // S11 · Regex → ε-NFA (Thompson's Inductive Construction)
 // Builds an equivalent ε-NFA from a regular expression from the inside out.
 
-import { EPS, EMPTY, machineToDot, runSets, accepts, setName, stringsUpTo } from '../machine.js';
+import { EPS, EMPTY, machineToDot, runSets, accepts, setName, stringsUpTo, pickTests } from '../machine.js';
 
 // --- Simple Regex Parser to AST ---
 // Nodes:
@@ -375,18 +375,13 @@ export function solveThompson(regexStr, testStrings = []) {
     steps[steps.length - 1].extra = { machine: finalMachine };
   }
 
-  // Compute test strings
-  const candidateTests = testStrings.length ? [...testStrings] : stringsUpTo(alphabet, 3).slice(0, 6);
-  // Guarantee at least one accepted and one rejected string (Style Rule 7)
-  let foundRejected = false;
-  let foundAccepted = false;
+  // Compute test strings: use pickTests to ensure a balanced selection of accepted and rejected strings
+  const candidateTests = testStrings && testStrings.length ? [...testStrings] : pickTests(finalMachine);
 
   const tests = [];
   candidateTests.forEach(w => {
     const sets = runSets(finalMachine, w);
     const ok = sets[sets.length - 1].some(q => finalMachine.final.includes(q));
-    if (ok) foundAccepted = true;
-    else foundRejected = true;
     tests.push({
       input: w === '' ? EPS : w,
       path: sets.map(setName).join(' → '),
@@ -394,14 +389,28 @@ export function solveThompson(regexStr, testStrings = []) {
     });
   });
 
-  // If all are accepted, search for a rejected string
-  if (!foundRejected) {
-    const longer = stringsUpTo(alphabet, 5);
-    const rej = longer.find(w => !accepts(finalMachine, w));
-    if (rej !== undefined) {
-      const sets = runSets(finalMachine, rej);
+  // Guarantee at least one accepted and one rejected string (Style Rule 7)
+  const hasAcc = tests.some(t => t.accepted);
+  const hasRej = tests.some(t => !t.accepted);
+  if (!hasAcc) {
+    const pool = pickTests(finalMachine);
+    const accOne = pool.find(w => accepts(finalMachine, w));
+    if (accOne !== undefined) {
+      const sets = runSets(finalMachine, accOne);
+      tests.unshift({
+        input: accOne === '' ? EPS : accOne,
+        path: sets.map(setName).join(' → '),
+        accepted: true
+      });
+    }
+  }
+  if (!hasRej) {
+    const pool = pickTests(finalMachine);
+    const rejOne = pool.find(w => !accepts(finalMachine, w));
+    if (rejOne !== undefined) {
+      const sets = runSets(finalMachine, rejOne);
       tests.push({
-        input: rej === '' ? EPS : rej,
+        input: rejOne === '' ? EPS : rejOne,
         path: sets.map(setName).join(' → '),
         accepted: false
       });

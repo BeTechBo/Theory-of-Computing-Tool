@@ -2,7 +2,7 @@
 // Builds the Cartesian product automaton M1 × M2 for L1 ∩ L2, L1 ∪ L2, and L1 \ L2,
 // or computes the DFA complement.
 
-import { EPS, EMPTY, machineToDot, accepts, stringsUpTo, setName } from '../machine.js';
+import { EPS, EMPTY, machineToDot, accepts, stringsUpTo, setName, pickTests } from '../machine.js';
 
 const pairName = (p, q) => `[${p},${q}]`;
 
@@ -167,8 +167,8 @@ export function solveProductConstruction(m1Input, m2Input, operation = 'both') {
     extra: { machine: productMachine }
   });
 
-  // Tests
-  const testWords = stringsUpTo(syms, 3).slice(0, 6);
+  // Tests: use pickTests on product machine to guarantee balanced accepted and rejected strings
+  const testWords = pickTests(productMachine);
   const tests = testWords.map(w => {
     const in1 = accepts(m1, w);
     const in2 = accepts(m2, w);
@@ -254,7 +254,7 @@ export function solveComplement(mInput) {
     }
   ];
 
-  const testWords = stringsUpTo(syms, 3).slice(0, 5);
+  const testWords = pickTests(compMachine);
   const tests = testWords.map(w => {
     const origOk = accepts(m, w);
     return {
