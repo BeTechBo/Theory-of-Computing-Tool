@@ -149,7 +149,9 @@ export function solveWith(technique, machine, strings = [], notes = {}) {
 
   const finalMachine = [...solution.steps].reverse().find(s => s.extra?.machine)?.extra.machine || machine;
   if (['subset_construction', 'eps_removal', 'thompson', 'product'].includes(technique) || technique.startsWith('min')) keep = finalMachine;
-  return { msg: solutionMessage(technique, solution, selfCheck(solution, machine), finalMachine, !notes.facts), machine: keep };
+  const isEquivalencePreserving = ['subset_construction', 'eps_removal'].includes(technique) || technique.startsWith('min');
+  const checkInput = isEquivalencePreserving ? machine : null;
+  return { msg: solutionMessage(technique, solution, selfCheck(solution, checkInput), finalMachine, !notes.facts), machine: keep };
 }
 
 function solutionMessage(technique, solution, checks, finalMachine, explainable) {
