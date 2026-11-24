@@ -9,7 +9,12 @@ export const FOLLOW_UPS = {
   eps_closure: ['Why does ε-CL(q) contain q itself?', 'When is ε accepted?'],
   eps_removal: ["Why does only q0 join F′?", 'Why close after the move too?'],
   moore_mealy: ['Why is the Moore output one symbol longer?', 'Why can Mealy → Moore need more states?'],
-  dfa_design: ['How do I choose the facts?', 'When do I need a dead state?']
+  dfa_design: ['How do I choose the facts?', 'When do I need a dead state?'],
+  thompson: ['Why does Thompson construction have only 1 accept state?', 'Why does the star need a bypass ε-arrow?'],
+  state_elimination: ['Why add fresh start and accept states in GNFA?', 'What if a state has a self-loop when eliminating?'],
+  product: ['Why must the DFA be complete before product or complement?', 'How do accepting states differ for ∩ and ∪?'],
+  pumping: ['Why cannot I pick p = 3 in the proof?', 'Why is y confined to the first p characters?'],
+  regex: ['How do I prove two regexes are equivalent?', 'How do I disprove regex equivalence?']
 };
 
 export const READY_ANSWERS = {
@@ -79,5 +84,39 @@ export const READY_ANSWERS = {
 
   'When do I need a dead state?': `When something can happen that **no later input can undo** and the string must be rejected.
 - Example: "no ab anywhere": once ab appears, every continuation is rejected.
-- The dead state loops to itself on every symbol and is not accepting. It also keeps δ complete.`
+- The dead state loops to itself on every symbol and is not accepting. It also keeps δ complete.`,
+
+  'Why does Thompson construction have only 1 accept state?': `Thompson's inductive construction always maintains **exactly one start state and one accept state** for every fragment.
+- This clean invariant allows concatenation (r₁r₂) and union (r₁|r₂) to wire fragments together easily without needing to handle sets of accept states.`,
+
+  'Why does the star need a bypass ε-arrow?': `Because the star operation R* **must accept the empty string ε** (since R* = ε | R | R² | ...).
+- The bypass ε-arrow from the fresh start directly to the fresh accept guarantees that ε is accepted with zero iterations through the inner machine.`,
+
+  'Why add fresh start and accept states in GNFA?': `To ensure that:
+1. The start state has **no incoming transitions** (so looping back to start doesn't accidentally restart the machine).
+2. The accept state has **no outgoing transitions** and is the **unique** accepting state.
+- This allows all original states to be eliminated until only a single arrow connects the fresh start to the fresh accept carrying the final regex.`,
+
+  'What if a state has a self-loop when eliminating?': `If the eliminated state q has a self-loop with label R(q, q), that loop can be repeated zero or more times.
+- Therefore, it contributes **(R(q, q))*** between the incoming and outgoing arrows:
+  R_new(p, r) = R_old(p, r) | R(p, q) · (R(q, q))* · R(q, r).
+- Forgetting the star is the most common exam trap in Session 10!`,
+
+  'Why must the DFA be complete before product or complement?': `Because complementation swaps accepting and non-accepting states.
+- If a state has a missing arrow on symbol 'a', that missing transition implicitly rejects.
+- If you swap states without making it complete, that rejected path doesn't get redirected to an accepting state, which gives the wrong complement language!`,
+
+  'How do accepting states differ for ∩ and ∪?': `In product construction with state pairs [p, q]:
+- For intersection (L₁ ∩ L₂): **both** must accept → p ∈ F₁ AND q ∈ F₂.
+- For union (L₁ ∪ L₂): **at least one** must accept → p ∈ F₁ OR q ∈ F₂.`,
+
+  'Why cannot I pick p = 3 in the proof?': `Because the Pumping Lemma states: "there EXISTS some integer p ≥ 1".
+- The adversary picks p, not you. You have no control over what p is, so your proof must hold for **any arbitrary p ≥ 1** using algebra. Picking a specific number like p = 3 proves nothing and loses all marks.`,
+
+  'Why is y confined to the first p characters?': `Because constraint 1 of the Pumping Lemma requires **|xy| ≤ p**.
+- Since the total length of the prefix xy is at most p, the substring y cannot reach past the first p symbols of your chosen string s.`,
+
+  'How do I prove two regexes are equivalent?': `By mutual inclusion: show that **L(R₁) ⊆ L(R₂)** and **L(R₂) ⊆ L(R₁)**, or apply valid algebraic identities (such as distributivity, idempotence, and Arden's lemma).`,
+
+  'How do I disprove regex equivalence?': `Provide a single **witness string** w that belongs to one language but not the other (e.g. w ∈ L(R₁) but w ∉ L(R₂)). One concrete counterexample is sufficient to disprove equivalence.`
 };

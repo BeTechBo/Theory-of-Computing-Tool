@@ -14,6 +14,8 @@ const STORE = 'stately.chats.v1';
 const SUGGESTIONS = [
   { emoji: '🏁', title: 'NFA → DFA', sub: 'The Subset Race from Session 4', color: 'from-teal-100 to-emerald-50 border-teal-200', send: SUBSET_PRESETS[0].table },
   { emoji: '🎲', title: 'Practice', sub: 'A fresh exercise, then I mark your photo', color: 'from-pink-100 to-rose-50 border-pink-200', send: 'practice' },
+  { emoji: '🧩', title: 'Regex → ε-NFA', sub: 'Thompson construction for (a|b)*abb', color: 'from-blue-100 to-cyan-50 border-blue-200', send: 'thompson: (a|b)*abb' },
+  { emoji: '🛡️', title: 'Pumping Lemma', sub: 'Prove 0ⁿ1ⁿ is not regular', color: 'from-emerald-100 to-teal-50 border-emerald-200', send: 'pumping: 0ⁿ1ⁿ' },
   {
     emoji: '🧮',
     title: 'Test some strings',

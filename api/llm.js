@@ -7,7 +7,21 @@ import { askLLM, llmStatus } from './_lib/llm.js';
 import { ANALYZE, EXPLAIN, CHECK } from './_lib/prompts.js';
 import { SESSION_MAP, relevantNotes } from './_lib/courseNotes.js';
 
-const TECHNIQUE_SESSION = { dfa_trace: 'S01 dfa trace', dfa_design: 'S02 design', min_table: 'S03 minimise', min_partition: 'S03 minimise', subset_construction: 'S04 nfa subset', eps_closure: 'S05 ε-closure', eps_removal: 'S06 ε-removal', moore_mealy: 'S07 moore mealy' };
+const TECHNIQUE_SESSION = {
+  dfa_trace: 'S01 dfa trace',
+  dfa_design: 'S02 design',
+  min_table: 'S03 minimise',
+  min_partition: 'S03 minimise',
+  subset_construction: 'S04 nfa subset',
+  eps_closure: 'S05 ε-closure',
+  eps_removal: 'S06 ε-removal',
+  moore_mealy: 'S07 moore mealy',
+  regex: 'S09 regex identities',
+  state_elimination: 'S10 state elimination',
+  thompson: 'S11 thompson',
+  product: 'S12 product construction',
+  pumping: 'S13 pumping lemma'
+};
 
 // The system prompt + the course map + the notes that match this request.
 const withNotes = (base, message, context = '') => {
