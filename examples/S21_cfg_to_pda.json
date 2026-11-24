@@ -1,0 +1,2375 @@
+{
+ "technique": "cfg_to_pda",
+ "session": "S21",
+ "input_summary": "CFG with 4 productions over {a, b, c} → PDA with 3 states and 9 transitions",
+ "facts": [
+  {
+   "item": "q_s",
+   "meaning": "nothing done yet: only the marker $ is on the stack"
+  },
+  {
+   "item": "q_loop",
+   "meaning": "the stack holds the unmatched tail of the current sentential form (top on the left)"
+  },
+  {
+   "item": "q_f",
+   "meaning": "the whole input was derived and matched"
+  },
+  {
+   "item": "S",
+   "meaning": "derives ab, ac, aabc, aacc, aaabcc, …"
+  },
+  {
+   "item": "B",
+   "meaning": "derives ε, ab, ac, aabc, aacc, …"
+  }
+ ],
+ "facts_title": "What each state and variable means",
+ "formal": "M = ({q_s, q_loop, q_f}, {a, b, c}, {S, B, a, b, c, $}, δ, q_s, $, {q_f})",
+ "steps": [
+  {
+   "title": "The grammar, and a prediction",
+   "explain": "The machine will keep the current sentential form on its stack and rewrite it in place. Count the transitions before writing any: one per production, one per terminal, plus start and accept.",
+   "lines": [
+    "G = ({S, B}, {a, b, c}, P, S)",
+    "P: S → aBc | ab",
+    "P: B → SB | ε",
+    "|P| + |T| + 2 = 4 + 3 + 2 = 9 transitions",
+    "and THREE states, whatever the grammar: q_s, q_loop, q_f"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "How many transitions will the machine have?",
+    "answer": "9",
+    "options": [
+     "7",
+     "8",
+     "9",
+     "10"
+    ],
+    "why": "One per production (4), one per terminal (3), plus start and accept: 9."
+   },
+   "extra": {}
+  },
+  {
+   "title": "Rule 1 · START: push S above a fresh marker",
+   "explain": "Put the start symbol on the stack, above a bottom marker $ that the grammar never uses. The marker is what makes \"fully matched\" detectable.",
+   "lines": [
+    "q_s —— ε, $ → S$ ——▸ q_loop",
+    "δ(q_s, ε, $) = (q_loop, S$)",
+    "the stack is now S$: the whole sentential form is S, and $ marks where it ends"
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q_s\" [shape=circle];\n  \"q_loop\" [shape=circle];\n  \"q_f\" [shape=doublecircle];\n  __start -> \"q_s\";\n  \"q_s\" -> \"q_loop\" [label=\"ε, $ → S$\"];\n}",
+   "highlight": [
+    "q_s"
+   ],
+   "extra": {}
+  },
+  {
+   "title": "Rule 2 · EXPAND: one loop per production",
+   "explain": "If the top of the stack is a variable, replace it by the right-hand side of one of its productions, without reading any input. The right-hand side is pushed as written: its first symbol becomes the new top.",
+   "lines": [
+    "ε, S → aBc   (from S → aBc)",
+    "ε, S → ab   (from S → ab)",
+    "ε, B → SB   (from B → SB)",
+    "ε, B → ε   (from B → ε)   ← the ε-production: the top is replaced by nothing, a pop. The one most often left out",
+    "4 productions, 4 loops at q_loop",
+    "without ε, B → ε no derivation could ever stop, and the machine would accept nothing"
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q_s\" [shape=circle];\n  \"q_loop\" [shape=circle];\n  \"q_f\" [shape=doublecircle];\n  __start -> \"q_s\";\n  \"q_s\" -> \"q_loop\" [label=\"ε, $ → S$\"];\n  \"q_loop\" -> \"q_loop\" [label=\"ε, S → aBc\\nε, S → ab\\nε, B → SB\\nε, B → ε\"];\n}",
+   "highlight": [
+    "q_loop"
+   ],
+   "extra": {}
+  },
+  {
+   "title": "Rule 3 · MATCH: one loop per terminal",
+   "explain": "If the top of the stack is a terminal, read the same symbol from the input and cancel it. Without these loops the machine would expand for ever and never touch its input.",
+   "lines": [
+    "a, a → ε",
+    "b, b → ε",
+    "c, c → ε",
+    "3 terminals, 3 loops at q_loop"
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q_s\" [shape=circle];\n  \"q_loop\" [shape=circle];\n  \"q_f\" [shape=doublecircle];\n  __start -> \"q_s\";\n  \"q_s\" -> \"q_loop\" [label=\"ε, $ → S$\"];\n  \"q_loop\" -> \"q_loop\" [label=\"ε, S → aBc\\nε, S → ab\\nε, B → SB\\nε, B → ε\\na, a → ε\\nb, b → ε\\nc, c → ε\"];\n}",
+   "highlight": [
+    "q_loop"
+   ],
+   "extra": {}
+  },
+  {
+   "title": "Rule 4 · ACCEPT, and the whole machine",
+   "explain": "The marker $ surfaces only when the whole sentential form has been matched against the input. Then one last ε-move pops it and enters the accepting state.",
+   "lines": [
+    "q_loop —— ε, $ → ε ——▸ q_f",
+    "M = ({q_s, q_loop, q_f}, {a, b, c}, {S, B, a, b, c, $}, δ, q_s, $, {q_f})",
+    "Γ = {S, B, a, b, c, $} holds the variables AND the terminals, because the stack holds sentential forms",
+    "acceptance by FINAL STATE, F = {q_f}",
+    "transitions: 1 start + 4 expand + 3 match + 1 accept = 9  ✓ as predicted"
+   ],
+   "table": [
+    [
+     "rule",
+     "transition",
+     "as an arrow label"
+    ],
+    [
+     "START",
+     "δ(q_s, ε, $) = (q_loop, S$)",
+     "ε, $ → S$"
+    ],
+    [
+     "EXPAND",
+     "δ(q_loop, ε, S) = (q_loop, aBc)",
+     "ε, S → aBc"
+    ],
+    [
+     "EXPAND",
+     "δ(q_loop, ε, S) = (q_loop, ab)",
+     "ε, S → ab"
+    ],
+    [
+     "EXPAND",
+     "δ(q_loop, ε, B) = (q_loop, SB)",
+     "ε, B → SB"
+    ],
+    [
+     "EXPAND",
+     "δ(q_loop, ε, B) = (q_loop, ε)",
+     "ε, B → ε"
+    ],
+    [
+     "MATCH",
+     "δ(q_loop, a, a) = (q_loop, ε)",
+     "a, a → ε"
+    ],
+    [
+     "MATCH",
+     "δ(q_loop, b, b) = (q_loop, ε)",
+     "b, b → ε"
+    ],
+    [
+     "MATCH",
+     "δ(q_loop, c, c) = (q_loop, ε)",
+     "c, c → ε"
+    ],
+    [
+     "ACCEPT",
+     "δ(q_loop, ε, $) = (q_f, ε)",
+     "ε, $ → ε"
+    ]
+   ],
+   "graph": "digraph {\n  rankdir=LR;\n  __start [shape=point, style=invis];\n  \"q_s\" [shape=circle];\n  \"q_loop\" [shape=circle];\n  \"q_f\" [shape=doublecircle];\n  __start -> \"q_s\";\n  \"q_s\" -> \"q_loop\" [label=\"ε, $ → S$\"];\n  \"q_loop\" -> \"q_loop\" [label=\"ε, S → aBc\\nε, S → ab\\nε, B → SB\\nε, B → ε\\na, a → ε\\nb, b → ε\\nc, c → ε\"];\n  \"q_loop\" -> \"q_f\" [label=\"ε, $ → ε\"];\n}",
+   "highlight": [
+    "q_f"
+   ],
+   "extra": {
+    "pda": {
+     "states": [
+      "q_s",
+      "q_loop",
+      "q_f"
+     ],
+     "input": [
+      "a",
+      "b",
+      "c"
+     ],
+     "stack": [
+      "S",
+      "B",
+      "a",
+      "b",
+      "c",
+      "$"
+     ],
+     "start": "q_s",
+     "bottom": "$",
+     "final": [
+      "q_f"
+     ],
+     "accept": "final",
+     "transitions": [
+      {
+       "from": "q_s",
+       "read": "",
+       "pop": "$",
+       "to": "q_loop",
+       "push": [
+        "S",
+        "$"
+       ],
+       "kind": "START"
+      },
+      {
+       "from": "q_loop",
+       "read": "",
+       "pop": "S",
+       "to": "q_loop",
+       "push": [
+        "a",
+        "B",
+        "c"
+       ],
+       "kind": "EXPAND",
+       "rule": {
+        "lhs": "S",
+        "rhs": [
+         "a",
+         "B",
+         "c"
+        ]
+       }
+      },
+      {
+       "from": "q_loop",
+       "read": "",
+       "pop": "S",
+       "to": "q_loop",
+       "push": [
+        "a",
+        "b"
+       ],
+       "kind": "EXPAND",
+       "rule": {
+        "lhs": "S",
+        "rhs": [
+         "a",
+         "b"
+        ]
+       }
+      },
+      {
+       "from": "q_loop",
+       "read": "",
+       "pop": "B",
+       "to": "q_loop",
+       "push": [
+        "S",
+        "B"
+       ],
+       "kind": "EXPAND",
+       "rule": {
+        "lhs": "B",
+        "rhs": [
+         "S",
+         "B"
+        ]
+       }
+      },
+      {
+       "from": "q_loop",
+       "read": "",
+       "pop": "B",
+       "to": "q_loop",
+       "push": [],
+       "kind": "EXPAND",
+       "rule": {
+        "lhs": "B",
+        "rhs": []
+       }
+      },
+      {
+       "from": "q_loop",
+       "read": "a",
+       "pop": "a",
+       "to": "q_loop",
+       "push": [],
+       "kind": "MATCH"
+      },
+      {
+       "from": "q_loop",
+       "read": "b",
+       "pop": "b",
+       "to": "q_loop",
+       "push": [],
+       "kind": "MATCH"
+      },
+      {
+       "from": "q_loop",
+       "read": "c",
+       "pop": "c",
+       "to": "q_loop",
+       "push": [],
+       "kind": "MATCH"
+      },
+      {
+       "from": "q_loop",
+       "read": "",
+       "pop": "$",
+       "to": "q_f",
+       "push": [],
+       "kind": "ACCEPT"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 1: START",
+   "explain": "Start: push S above the marker. The stack now holds the whole sentential form, S.",
+   "lines": [
+    "   (q_s, aabc, $)",
+    "⊢ (q_loop, aabc, S$)   by ε, $ → S$   (START)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     2,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     4
+    ]
+   ],
+   "highlight": [],
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 1,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 2: EXPAND with S → aBc",
+   "explain": "The top of the stack is the variable S. Guess a production for it: S → aBc. No input is read. (Every other choice is another branch; this is the one that survives.)",
+   "lines": [
+    "⊢ (q_loop, aabc, S$)   by ε, $ → S$   (START)",
+    "⊢ (q_loop, aabc, aBc$)   by ε, S → aBc   (EXPAND with S → aBc)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     3,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is S$ and the unread input is aabc. EXPAND or MATCH?",
+    "answer": "EXPAND",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "S is a variable, so it is replaced by a right-hand side."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 2,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 3: MATCH a",
+   "explain": "The top of the stack is the terminal a and the next input symbol is a: they cancel. The stack is always the part of the sentential form that is still unmatched.",
+   "lines": [
+    "⊢ (q_loop, aabc, aBc$)   by ε, S → aBc   (EXPAND with S → aBc)",
+    "⊢ (q_loop, abc, Bc$)   by a, a → ε   (MATCH a)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is aBc$ and the unread input is aabc. EXPAND or MATCH?",
+    "answer": "MATCH",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "a is a terminal, so it is matched against the input."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 3,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 4: EXPAND with B → SB",
+   "explain": "The top of the stack is the variable B. Guess a production for it: B → SB. No input is read. (Every other choice is another branch; this is the one that survives.)",
+   "lines": [
+    "⊢ (q_loop, abc, Bc$)   by a, a → ε   (MATCH a)",
+    "⊢ (q_loop, abc, SBc$)   by ε, B → SB   (EXPAND with B → SB)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     5,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     5,
+     3
+    ],
+    [
+     5,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is Bc$ and the unread input is abc. EXPAND or MATCH?",
+    "answer": "EXPAND",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "B is a variable, so it is replaced by a right-hand side."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 4,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 5: EXPAND with S → ab",
+   "explain": "The top of the stack is the variable S. Guess a production for it: S → ab. No input is read. (Every other choice is another branch; this is the one that survives.)",
+   "lines": [
+    "⊢ (q_loop, abc, SBc$)   by ε, B → SB   (EXPAND with B → SB)",
+    "⊢ (q_loop, abc, abBc$)   by ε, S → ab   (EXPAND with S → ab)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ],
+    [
+     "⊢ 5",
+     "(q_loop, abc, abBc$)",
+     "ε, S → ab",
+     "EXPAND",
+     "aabBc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     6,
+     0
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     3
+    ],
+    [
+     6,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is SBc$ and the unread input is abc. EXPAND or MATCH?",
+    "answer": "EXPAND",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "S is a variable, so it is replaced by a right-hand side."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 5,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "a",
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → ab",
+       "kind": "push",
+       "fresh": 2,
+       "popped": "S",
+       "note": "",
+       "form": "aabBc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 6: MATCH a",
+   "explain": "The top of the stack is the terminal a and the next input symbol is a: they cancel. The stack is always the part of the sentential form that is still unmatched.",
+   "lines": [
+    "⊢ (q_loop, abc, abBc$)   by ε, S → ab   (EXPAND with S → ab)",
+    "⊢ (q_loop, bc, bBc$)   by a, a → ε   (MATCH a)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ],
+    [
+     "⊢ 5",
+     "(q_loop, abc, abBc$)",
+     "ε, S → ab",
+     "EXPAND",
+     "aabBc"
+    ],
+    [
+     "⊢ 6",
+     "(q_loop, bc, bBc$)",
+     "a, a → ε",
+     "MATCH",
+     "aabBc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     7,
+     0
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     7,
+     2
+    ],
+    [
+     7,
+     3
+    ],
+    [
+     7,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is abBc$ and the unread input is abc. EXPAND or MATCH?",
+    "answer": "MATCH",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "a is a terminal, so it is matched against the input."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 6,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "a",
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → ab",
+       "kind": "push",
+       "fresh": 2,
+       "popped": "S",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "bc",
+       "pos": 2,
+       "stack": [
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aabBc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 7: MATCH b",
+   "explain": "The top of the stack is the terminal b and the next input symbol is b: they cancel. The stack is always the part of the sentential form that is still unmatched.",
+   "lines": [
+    "⊢ (q_loop, bc, bBc$)   by a, a → ε   (MATCH a)",
+    "⊢ (q_loop, c, Bc$)   by b, b → ε   (MATCH b)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ],
+    [
+     "⊢ 5",
+     "(q_loop, abc, abBc$)",
+     "ε, S → ab",
+     "EXPAND",
+     "aabBc"
+    ],
+    [
+     "⊢ 6",
+     "(q_loop, bc, bBc$)",
+     "a, a → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 7",
+     "(q_loop, c, Bc$)",
+     "b, b → ε",
+     "MATCH",
+     "aabBc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     8,
+     0
+    ],
+    [
+     8,
+     1
+    ],
+    [
+     8,
+     2
+    ],
+    [
+     8,
+     3
+    ],
+    [
+     8,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is bBc$ and the unread input is bc. EXPAND or MATCH?",
+    "answer": "MATCH",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "b is a terminal, so it is matched against the input."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 7,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "a",
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → ab",
+       "kind": "push",
+       "fresh": 2,
+       "popped": "S",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "bc",
+       "pos": 2,
+       "stack": [
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "b, b → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "b",
+       "note": "",
+       "form": "aabBc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 8: EXPAND with B → ε",
+   "explain": "The top of the stack is the variable B. Guess a production for it: B → ε. No input is read. (Every other choice is another branch; this is the one that survives.)",
+   "lines": [
+    "⊢ (q_loop, c, Bc$)   by b, b → ε   (MATCH b)",
+    "⊢ (q_loop, c, c$)   by ε, B → ε   (EXPAND with B → ε)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ],
+    [
+     "⊢ 5",
+     "(q_loop, abc, abBc$)",
+     "ε, S → ab",
+     "EXPAND",
+     "aabBc"
+    ],
+    [
+     "⊢ 6",
+     "(q_loop, bc, bBc$)",
+     "a, a → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 7",
+     "(q_loop, c, Bc$)",
+     "b, b → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 8",
+     "(q_loop, c, c$)",
+     "ε, B → ε",
+     "EXPAND",
+     "aabc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     9,
+     0
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     9,
+     2
+    ],
+    [
+     9,
+     3
+    ],
+    [
+     9,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is Bc$ and the unread input is c. EXPAND or MATCH?",
+    "answer": "EXPAND",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "B is a variable, so it is replaced by a right-hand side."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 8,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "a",
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → ab",
+       "kind": "push",
+       "fresh": 2,
+       "popped": "S",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "bc",
+       "pos": 2,
+       "stack": [
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "b, b → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "b",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "c",
+        "$"
+       ],
+       "via": "ε, B → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "B",
+       "note": "",
+       "form": "aabc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 9: MATCH c",
+   "explain": "The top of the stack is the terminal c and the next input symbol is c: they cancel. The stack is always the part of the sentential form that is still unmatched.",
+   "lines": [
+    "⊢ (q_loop, c, c$)   by ε, B → ε   (EXPAND with B → ε)",
+    "⊢ (q_loop, ε, $)   by c, c → ε   (MATCH c)"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ],
+    [
+     "⊢ 5",
+     "(q_loop, abc, abBc$)",
+     "ε, S → ab",
+     "EXPAND",
+     "aabBc"
+    ],
+    [
+     "⊢ 6",
+     "(q_loop, bc, bBc$)",
+     "a, a → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 7",
+     "(q_loop, c, Bc$)",
+     "b, b → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 8",
+     "(q_loop, c, c$)",
+     "ε, B → ε",
+     "EXPAND",
+     "aabc"
+    ],
+    [
+     "⊢ 9",
+     "(q_loop, ε, $)",
+     "c, c → ε",
+     "MATCH",
+     "aabc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     10,
+     0
+    ],
+    [
+     10,
+     1
+    ],
+    [
+     10,
+     2
+    ],
+    [
+     10,
+     3
+    ],
+    [
+     10,
+     4
+    ]
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "The stack is c$ and the unread input is c. EXPAND or MATCH?",
+    "answer": "MATCH",
+    "options": [
+     "EXPAND",
+     "MATCH"
+    ],
+    "why": "c is a terminal, so it is matched against the input."
+   },
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 9,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "a",
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → ab",
+       "kind": "push",
+       "fresh": 2,
+       "popped": "S",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "bc",
+       "pos": 2,
+       "stack": [
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "b, b → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "b",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "c",
+        "$"
+       ],
+       "via": "ε, B → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "B",
+       "note": "",
+       "form": "aabc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "",
+       "pos": 4,
+       "stack": [
+        "$"
+       ],
+       "via": "c, c → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "c",
+       "note": "",
+       "form": "aabc"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "title": "Run \"aabc\" · move 10: ACCEPT",
+   "explain": "The marker $ is on top, so everything has been matched. Pop it and accept.",
+   "lines": [
+    "⊢ (q_loop, ε, $)   by c, c → ε   (MATCH c)",
+    "⊢ (q_f, ε, ε)   by ε, $ → ε   (ACCEPT)",
+    "input finished ✓   q_f ∈ F ✓   →   ACCEPT",
+    "10 moves: 1 start + 4 expand + 4 match + 1 accept. Expand moves read nothing; match moves read one symbol each",
+    "the sentential-form column, read downwards without repeats: S ⇒ aBc ⇒ aSBc ⇒ aabBc ⇒ aabc"
+   ],
+   "table": [
+    [
+     "#",
+     "ID (state, unread input, stack)",
+     "transition",
+     "rule",
+     "sentential form"
+    ],
+    [
+     "start",
+     "(q_s, aabc, $)",
+     "",
+     "",
+     "(nothing yet)"
+    ],
+    [
+     "⊢ 1",
+     "(q_loop, aabc, S$)",
+     "ε, $ → S$",
+     "START",
+     "S"
+    ],
+    [
+     "⊢ 2",
+     "(q_loop, aabc, aBc$)",
+     "ε, S → aBc",
+     "EXPAND",
+     "aBc"
+    ],
+    [
+     "⊢ 3",
+     "(q_loop, abc, Bc$)",
+     "a, a → ε",
+     "MATCH",
+     "aBc"
+    ],
+    [
+     "⊢ 4",
+     "(q_loop, abc, SBc$)",
+     "ε, B → SB",
+     "EXPAND",
+     "aSBc"
+    ],
+    [
+     "⊢ 5",
+     "(q_loop, abc, abBc$)",
+     "ε, S → ab",
+     "EXPAND",
+     "aabBc"
+    ],
+    [
+     "⊢ 6",
+     "(q_loop, bc, bBc$)",
+     "a, a → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 7",
+     "(q_loop, c, Bc$)",
+     "b, b → ε",
+     "MATCH",
+     "aabBc"
+    ],
+    [
+     "⊢ 8",
+     "(q_loop, c, c$)",
+     "ε, B → ε",
+     "EXPAND",
+     "aabc"
+    ],
+    [
+     "⊢ 9",
+     "(q_loop, ε, $)",
+     "c, c → ε",
+     "MATCH",
+     "aabc"
+    ],
+    [
+     "⊢ 10",
+     "(q_f, ε, ε)",
+     "ε, $ → ε",
+     "ACCEPT",
+     "aabc"
+    ]
+   ],
+   "highlight_cells": [
+    [
+     11,
+     0
+    ],
+    [
+     11,
+     1
+    ],
+    [
+     11,
+     2
+    ],
+    [
+     11,
+     3
+    ],
+    [
+     11,
+     4
+    ]
+   ],
+   "highlight": [],
+   "extra": {
+    "stack": {
+     "input": "aabc",
+     "bottom": "$",
+     "current": 10,
+     "frames": [
+      {
+       "state": "q_s",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "$"
+       ],
+       "via": "",
+       "kind": "start",
+       "fresh": 0,
+       "popped": "",
+       "note": "",
+       "form": "(nothing yet)"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "S",
+        "$"
+       ],
+       "via": "ε, $ → S$",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "S"
+      },
+      {
+       "state": "q_loop",
+       "rest": "aabc",
+       "pos": 0,
+       "stack": [
+        "a",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → aBc",
+       "kind": "push",
+       "fresh": 3,
+       "popped": "S",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "S",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, B → SB",
+       "kind": "push",
+       "fresh": 1,
+       "popped": "",
+       "note": "",
+       "form": "aSBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "abc",
+       "pos": 1,
+       "stack": [
+        "a",
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "ε, S → ab",
+       "kind": "push",
+       "fresh": 2,
+       "popped": "S",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "bc",
+       "pos": 2,
+       "stack": [
+        "b",
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "a, a → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "a",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "B",
+        "c",
+        "$"
+       ],
+       "via": "b, b → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "b",
+       "note": "",
+       "form": "aabBc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "c",
+       "pos": 3,
+       "stack": [
+        "c",
+        "$"
+       ],
+       "via": "ε, B → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "B",
+       "note": "",
+       "form": "aabc"
+      },
+      {
+       "state": "q_loop",
+       "rest": "",
+       "pos": 4,
+       "stack": [
+        "$"
+       ],
+       "via": "c, c → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "c",
+       "note": "",
+       "form": "aabc"
+      },
+      {
+       "state": "q_f",
+       "rest": "",
+       "pos": 4,
+       "stack": [],
+       "via": "ε, $ → ε",
+       "kind": "pop",
+       "fresh": 0,
+       "popped": "$",
+       "note": "ACCEPT",
+       "form": "aabc"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "tests": [
+  {
+   "input": "aabc",
+   "path": "S ⇒ aBc ⇒ aSBc ⇒ aabBc ⇒ aabc  (10 moves)",
+   "accepted": true
+  },
+  {
+   "input": "",
+   "path": "not in L(G): every branch gets stuck",
+   "accepted": false
+  }
+ ],
+ "language": "L(G) = { ab, ac, aabc, aacc, aaabcc, … }: an a, then nested members of the language, closed by b or by c.",
+ "conclusion": "Three states and 4 + 3 + 2 = 9 transitions, accepting by final state. Accepted: aabc. Rejected: ε. The stack always holds the unmatched tail of the sentential form."
+}

@@ -5,6 +5,8 @@
 //
 // Teammates: add your sessions (S09–S13, S17–S21) in the same shape.
 
+import { GRAMMAR_NOTES } from './courseNotesGrammar.js';
+
 export const SESSION_MAP = `
 Course map (CSCE 4201, Fall 2026). In scope for this tutor: S01–S21.
 S01 alphabets, strings, languages; DFA formal definition and acceptance · S02 designing DFAs: "the facts come first" (invariants, trap states)
@@ -99,7 +101,8 @@ export const NOTES = [
 - Moore → Mealy: λ′(q, a) = λ(δ(q, a)), the arrow takes the output of the state it LANDS in. Same states, no new ones.
 - Mealy → Moore: states are pairs [q, c] (state, last printed symbol); λ′([q,c]) = c; δ′([q,c], a) = [δ(q,a), λ(q,a)]; start [q0, c0] with c0 arbitrary (it only affects the dropped first symbol). Keep reachable pairs only. A state splits when the arrows entering it print different symbols; at most |Q|×|Δ| states.
 - Example: Moore counter of b's mod 3 on babba prints 0 1 1 2 0 0 (six symbols); the Mealy version prints 1 1 2 0 0.`
-  }
+  },
+  ...GRAMMAR_NOTES // S17–S21 (Noor): see courseNotesGrammar.js
 ];
 
 // Pick the notes that best match. The current message counts three times as much as

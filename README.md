@@ -55,6 +55,30 @@ An interactive suite for exploring and visualizing formal languages, automata, g
 
 ---
 
+## 🎓 Stately tutor · Module 5: grammars and pushdown automata (S17–S21)
+
+The chat tutor solves these six techniques **in code** (so every table, tree and trace is right) and shows them one step at a time, the way the course marks them. No AI key is needed for any of them.
+
+| Send this | What you get |
+|---|---|
+| `S → aSb \| ε` (optionally `strings: aabb, ab`) | **S17** · G = (V, T, P, S), the Chomsky type, what each variable generates, and a leftmost derivation with the production named at every step while the tree grows. A right-linear grammar also gets its matching machine. |
+| a DFA table + "convert to a right-linear grammar" | **S17** · Theorem 1 in five steps. |
+| "Is this grammar ambiguous?" + a grammar | **S18** · the shortest string with two trees, both trees side by side, and a verified repair (one variable per precedence level). |
+| "Simplify" + a grammar | **S18** · 1a non-generating, 1b unreachable, 2 ε-productions, 3 unit productions, 4 useless again, with the grammar shown as a diff after every step. |
+| "Convert to CNF" / "Greibach normal form" + a grammar | **S19** · the five CNF steps (Sipser's version; say "Linz form" to skip S0), or the GNF conversion with left-recursion removal. |
+| `δ(q0, a, Z) = (q0, XZ)` lines (+ `final:`, `accept: empty stack`, `strings:`) | **S20** · the seven-tuple, both determinism rules, and the trace as IDs with the stack drawn after every move. A nondeterministic machine also gets a STUCK branch. |
+| "Convert to a PDA" + a grammar | **S21** · the three-rule construction (`|P| + |T| + 2` transitions, three states) and a run with the sentential form beside every ID. |
+
+Follow-ups work on whatever is in the chat: `Simplify it`, `Convert it to CNF`, `Is it ambiguous?`, `Convert it to a PDA`, `test aabb`.
+
+- Solvers: `src/components/tutor/techniques/` (`cfgDerivation`, `ambiguity`, `simplify`, `normalForms`, `pdaTrace`, `cfgToPda`), on top of `src/components/tutor/grammar.js` and `pdaMachine.js`.
+- Renderers for the contract's `extra` field (tree, stack, grammar diff): `src/components/tutor/renderers/grammar.jsx`.
+- Tests against the session model answers: `npm run test:grammar`.
+- Example answers in the shared JSON contract: `examples/` (paste one into the chat to render it; regenerate with `node scripts/make-examples.mjs`).
+- The 5-minute demo: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites

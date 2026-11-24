@@ -20,6 +20,7 @@ import { analyze, readAttempt } from './llmClient.js';
 import { makePractice, PRACTICE_TOPICS } from '../tutor/practice.js';
 import { checkStudent } from '../tutor/checker.js';
 import { transducerToTable } from '../tutor/techniques/mooreMealy.js';
+import { respondGrammar, grammarFromAi, machineToGrammar, wantsGrammar, subjectText } from './grammarBrain.js';
 
 const PRACTICE_RE = /\b(practi[cs]e|exercise|drill)\b|\bquiz me\b|\btest me\b|give me (a|an|another|one more) (question|problem|exercise)|^\s*(another|one more)( one| question| exercise)?\s*[.!]?\s*$/i;
 const SHOW_RE = /show (me )?(the )?(full |correct )?(solution|answer|steps)|\breveal\b|solve it( for me)?|i give up/i;
@@ -162,7 +163,17 @@ export function explainPayload(msg) {
 
 const tableError = e => bot(`I couldn't read that table: ${e.message}\n\nWrite it like this (→ marks the start state, * marks accepting states):\n\`\`\`\n${FORMAT}\n\`\`\``, { mood: 'sad' });
 
-export async function respond({ text, images = [], machine, llmOn, history, practice = null }) {
+// S17–S21 (grammars and PDAs) are tried first; everything else is the automata flow below.
+// "It" is whatever was sent last: a new machine replaces the grammar/PDA in the chat, and the other way round.
+export async function respond(args) {
+  const mine = args.images?.length || CHECK_RE.test(args.text) || PRACTICE_RE.test(args.text) ? null : respondGrammar(args);
+  const out = mine || (await respondAutomata(args));
+  if (out.subject) out.machine = null;
+  else if (out.machine) out.subject = null;
+  return out;
+}
+
+async function respondAutomata({ text, images = [], machine, llmOn, history, practice = null, subject = null }) {
   const trimmed = text.trim();
   const hasTable = /\n.*[|\t]/.test(trimmed);
 
@@ -181,7 +192,7 @@ export async function respond({ text, images = [], machine, llmOn, history, prac
   // Pictures always need the AI to read them
   if (images.length) {
     if (!llmOn) return { msgs: [bot("I can't read pictures just yet 📷. For now, type the machine as a table and I'll solve it:\n```\n" + FORMAT + '\n```', { mood: 'sad' })] };
-    return askAi({ trimmed, images, machine, history });
+    return askAi({ trimmed, images, machine, history, subject });
   }
 
   // 1. Pasted contract JSON
@@ -216,6 +227,7 @@ export async function respond({ text, images = [], machine, llmOn, history, prac
       return { msgs: [tableError(e)] };
     }
     try {
+      if (wantsGrammar(instruction)) return machineToGrammar(m); // S17: a machine turned into a right-linear grammar
       const { msg, machine: kept } = solveWith(pickTechnique(instruction, m, strings), m, strings, presetNotes(tableText));
       return { msgs: [msg], machine: kept };
     } catch (e) {
@@ -251,21 +263,25 @@ export async function respond({ text, images = [], machine, llmOn, history, prac
   }
 
   // 4. The AI analyzer
-  if (llmOn) return askAi({ trimmed, images: [], machine, history });
+  if (llmOn) return askAi({ trimmed, images: [], machine, history, subject });
 
   // 5. Offline
   return {
     msgs: [
       bot(
-        "I can't answer written questions just yet, but send me a machine as a table and I'll solve it step by step:\n```\n" + FORMAT + "\n```\nAdd a line like `strings: aab, ba, ε` to test strings.",
+        "I can't answer written questions just yet, but send me a machine as a table and I'll solve it step by step:\n```\n" + FORMAT + "\n```\nAdd a line like `strings: aab, ba, ε` to test strings.\n\nI also solve **grammars** (`S → aSb | ε`: derive, simplify, CNF, ambiguity, to a PDA) and trace **PDAs** (`δ(q0, a, Z) = (q0, XZ)`).",
         { mood: 'thinking' }
       )
     ]
   };
 }
 
-async function askAi({ trimmed, images, machine, history }) {
-  const ai = await analyze({ message: trimmed, images, technique: null, machineTable: machine ? machineToTable(machine) : null, history });
+async function askAi({ trimmed, images, machine, history, subject = null }) {
+  const ai = await analyze({ message: trimmed, images, technique: null, machineTable: machine ? machineToTable(machine) : subjectText(subject), history });
+
+  // S17–S21: the AI read (or designed) a grammar or a PDA; code solves and checks it
+  const mine = grammarFromAi(ai, { text: trimmed, subject });
+  if (mine) return mine;
   // For solved exercises our own intro already says what happens, so the AI's "I will …"
   // sentence would repeat it. Keep it only when nothing gets solved.
   const intro = '';

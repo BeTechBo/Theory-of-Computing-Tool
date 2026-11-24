@@ -184,7 +184,7 @@ export function BotMessage({ msg, latest, onAction }) {
             </div>
             {msg.explainState === 'loading' && (
               <p className="flex items-center gap-1.5 text-xs font-round text-violet-600">
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Thinking about what each state means…
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" /> {msg.explainKind === 'grammar' ? 'Thinking about what each variable generates…' : 'Thinking about what each state means…'}
               </p>
             )}
             {latest && (
@@ -195,6 +195,9 @@ export function BotMessage({ msg, latest, onAction }) {
                 {msg.solution.technique === 'subset_construction' && (
                   <Chip color="sky" onClick={() => onAction({ type: 'say', text: 'Now minimise it' })}>➡️ Now minimise it</Chip>
                 )}
+                {(msg.next || []).map(a => (
+                  <Chip key={a.label} color="sky" onClick={() => onAction({ type: 'say', text: a.say })}>{a.label}</Chip>
+                ))}
                 {!['moore_mealy'].includes(msg.solution.technique) && (
                   <Chip color="teal" onClick={() => onAction({ type: 'test' })}>🧪 Test my own string</Chip>
                 )}

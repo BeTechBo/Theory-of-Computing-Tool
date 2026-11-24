@@ -4,8 +4,9 @@ import Mascot from './Mascot';
 import Doodles from './Doodles';
 import { UserBubble, BotMessage } from './Message';
 import { respond, explainPayload } from './brain.js';
-import { llmStatus, explain } from './llmClient.js';
+import { llmStatus, explain, explainSubject } from './llmClient.js';
 import { SUBSET_PRESETS } from '../tutor/presets.js';
+import { presetGrammar, presetPda } from '../tutor/grammarPresets.js';
 import { checkRegex } from '../tutor/checks.js';
 import { READY_ANSWERS } from './suggestions.js';
 
@@ -21,7 +22,10 @@ const SUGGESTIONS = [
     color: 'from-amber-100 to-yellow-50 border-amber-200',
     send: `state  | 0  | 1\n→ * r0 | r0 | r1\nr1     | r2 | r0\nr2     | r1 | r2\nstrings: 110, 111, 1001, ε`
   },
-  { emoji: '💬', title: 'Ask a question', sub: 'Why can every NFA become a DFA?', color: 'from-violet-100 to-indigo-50 border-violet-200', send: 'Why can every NFA be turned into a DFA? Explain it simply.' }
+  { emoji: '💬', title: 'Ask a question', sub: 'Why can every NFA become a DFA?', color: 'from-violet-100 to-indigo-50 border-violet-200', send: 'Why can every NFA be turned into a DFA? Explain it simply.' },
+  // Module 5 (S17–S21): grammars and pushdown automata
+  { emoji: '🌳', title: 'Grammar → CNF', sub: 'The conversion relay from Session 19', color: 'from-lime-100 to-green-50 border-lime-200', send: `Convert to Chomsky normal form:\n${presetGrammar('s19-relay').text}` },
+  { emoji: '🥞', title: 'Trace a PDA', sub: 'Watch the stack count aⁿbⁿ', color: 'from-sky-100 to-cyan-50 border-sky-200', send: `${presetPda('pda-anbn').text}\nstrings: aabb, abab` }
 ];
 
 const newChat = () => ({ id: Date.now().toString(36), title: 'New chat', messages: [], machine: null, createdAt: Date.now() });
@@ -92,7 +96,7 @@ export default function ChatApp() {
     let result;
     try {
       const [r] = await Promise.all([
-        respond({ text, images: pics.map(({ mimeType, data }) => ({ mimeType, data })), machine: chat.machine, practice: chat.practice || null, llmOn: ai.configured, history }),
+        respond({ text, images: pics.map(({ mimeType, data }) => ({ mimeType, data })), machine: chat.machine, subject: chat.subject || null, practice: chat.practice || null, llmOn: ai.configured, history }),
         new Promise(res => setTimeout(res, 450)) // let Stately "think" for a moment
       ]);
       result = r;
@@ -103,6 +107,7 @@ export default function ChatApp() {
     updateChat(id, c => ({
       ...c,
       machine: result.machine !== undefined ? result.machine : c.machine,
+      subject: result.subject !== undefined ? result.subject : c.subject, // the grammar or PDA in the chat (S17–S21)
       practice: result.practice !== undefined ? result.practice : c.practice,
       messages: [...c.messages.filter(m => m.kind !== 'typing'), ...stamped]
     }));
@@ -117,6 +122,17 @@ export default function ChatApp() {
     const patch = fn => updateChat(chatId, c => ({ ...c, messages: c.messages.map(m => (m.id === msg.id ? fn(m) : m)) }));
     patch(m => ({ ...m, explainState: 'loading' }));
     try {
+      if (msg.explainKind) {
+        // a grammar or a PDA: the AI writes what each variable / state means and L in one sentence
+        const out = await explainSubject(msg.explainData);
+        const meaning = Object.fromEntries((out.facts || []).filter(f => msg.explainData.items.includes(f.item) && f.meaning).map(f => [f.item, String(f.meaning)]));
+        patch(m => ({
+          ...m,
+          explainState: 'done',
+          solution: { ...m.solution, facts: (m.solution.facts || []).map(f => (meaning[f.item] ? { ...f, meaning: meaning[f.item] } : f)), language: out.language ? String(out.language) : m.solution.language }
+        }));
+        return;
+      }
       const out = await explain(explainPayload(msg));
       const names = new Set(msg.finalMachine.states);
       const facts = (out.facts || []).filter(f => names.has(f.item));

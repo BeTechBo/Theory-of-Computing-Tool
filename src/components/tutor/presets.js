@@ -29,12 +29,12 @@ export const TECHNIQUES = [
   {
     group: 'Module 5 · Grammars and PDAs (Noor)',
     items: [
-      { id: 'cfg', label: 'S17 · Linear grammars, CFGs and derivations', ready: false },
-      { id: 'ambiguity', label: 'S18 · Derivation trees and ambiguity', ready: false },
-      { id: 'simplification', label: 'S18 · CFG simplification', ready: false },
-      { id: 'cnf_gnf', label: 'S19 · CNF and GNF', ready: false },
-      { id: 'pda', label: 'S20 · PDA design and trace', ready: false },
-      { id: 'cfg_to_pda', label: 'S21 · CFG → PDA', ready: false }
+      { id: 'cfg', label: 'S17 · Linear grammars, CFGs and derivations', ready: true },
+      { id: 'ambiguity', label: 'S18 · Derivation trees and ambiguity', ready: true },
+      { id: 'simplification', label: 'S18 · CFG simplification', ready: true },
+      { id: 'cnf_gnf', label: 'S19 · CNF and GNF', ready: true },
+      { id: 'pda', label: 'S20 · PDA design and trace', ready: true },
+      { id: 'cfg_to_pda', label: 'S21 · CFG → PDA', ready: true }
     ]
   }
 ];
