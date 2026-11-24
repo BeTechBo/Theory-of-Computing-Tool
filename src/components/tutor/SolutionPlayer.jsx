@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, ListOrdered } from 'lucide-react';
 import GraphView from './GraphView';
+import { StepExtras } from './renderers/grammar';
 
 const card = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm';
 const h3 = 'text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2';
@@ -18,6 +19,8 @@ export default function SolutionPlayer({ solution, checks = [], keyboard = true,
   const [asking, setAsking] = useState(null); // index of the step being asked about
   const [picks, setPicks] = useState({}); // step index -> chosen option
   const hasQuizzes = steps.some(s => s.quiz);
+  // Grammars are "generated", machines "accepted": a solution may name its own two verdicts.
+  const [yes, no] = solution.test_labels || ['accepted', 'rejected'];
   const answered = Object.keys(picks).length;
   const right = Object.entries(picks).filter(([i, o]) => steps[i]?.quiz?.answer === o).length;
 
@@ -140,11 +143,11 @@ export default function SolutionPlayer({ solution, checks = [], keyboard = true,
                       {'accepted' in t ? (
                         t.accepted ? (
                           <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
-                            <CheckCircle2 className="w-4 h-4" /> accepted
+                            <CheckCircle2 className="w-4 h-4" /> {yes}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-semibold text-xs">
-                            <XCircle className="w-4 h-4" /> rejected
+                            <XCircle className="w-4 h-4" /> {no}
                           </span>
                         )
                       ) : (
@@ -171,7 +174,7 @@ export default function SolutionPlayer({ solution, checks = [], keyboard = true,
           <div className={`${card} bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900`}>
             {solution.facts?.length > 0 && (
               <>
-                <h3 className={h3}>What each state means</h3>
+                <h3 className={h3}>{solution.facts_title || 'What each state means'}</h3>
                 <ul className="space-y-1 text-sm mb-4">
                   {solution.facts.map((f, i) => (
                     <li key={i}>
@@ -269,6 +272,9 @@ function StepCard({ step, number }) {
           )}
         </div>
       )}
+
+      {/* Plug-in slot for the special renderers: tree, stack, grammar diff (S17–S21) */}
+      <StepExtras extra={step.extra} />
     </div>
   );
 }

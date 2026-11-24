@@ -1,0 +1,1036 @@
+{
+ "technique": "cnf_gnf",
+ "session": "S19",
+ "input_summary": "CFG with 6 productions over {a, b}, start S → Chomsky normal form",
+ "facts": [
+  {
+   "item": "S",
+   "meaning": "every string over {a,b} that contains at least one a"
+  },
+  {
+   "item": "A",
+   "meaning": "ε, b, or anything S generates"
+  },
+  {
+   "item": "B",
+   "meaning": "b or ε"
+  }
+ ],
+ "facts_title": "What each variable generates",
+ "formal": "G = ({S, A, B}, {a, b}, P, S)",
+ "steps": [
+  {
+   "title": "The grammar, and is ε in the language?",
+   "explain": "Chomsky normal form allows only two shapes: A → BC (two variables) and A → a (one terminal). Before anything else, decide whether ε ∈ L(G): it settles which version of CNF you convert to.",
+   "lines": [
+    "G = ({S, A, B}, {a, b}, P, S)",
+    "P: S → ASA | aB",
+    "P: A → B | S",
+    "P: B → b | ε",
+    "S is not nullable, so ε ∉ L(G)",
+    "this course uses Sipser's version: the start symbol may have → ε, and it may not appear on any right-hand side",
+    "not yet in CNF (5 of 6): S → ASA (3 symbols on the right),  S → aB (a terminal next to another symbol),  A → B (a unit production),  A → S (a unit production),  B → ε (an ε-production)"
+   ],
+   "table": [
+    [
+     "variable",
+     "productions"
+    ],
+    [
+     "→ S",
+     "ASA | aB"
+    ],
+    [
+     "A",
+     "B | S"
+    ],
+    [
+     "B",
+     "b | ε"
+    ]
+   ],
+   "highlight": [],
+   "extra": {}
+  },
+  {
+   "title": "Step 1 · A new start symbol?",
+   "explain": "The start symbol must not appear on any right-hand side (so that ε, if it is in the language, can be produced by the start symbol and by nothing else). If it does appear, add S0 → S and make S0 the start.",
+   "lines": [
+    "S occurs on the right of S → ASA, A → S",
+    "add S0 → S and make S0 the start symbol",
+    "(ε ∉ L(G), so the Linz form, which skips this step, is accepted too. Say which version you use.)"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S0",
+       "alts": [
+        {
+         "text": "S",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      },
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "same"
+        },
+        {
+         "text": "aB",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "B",
+         "status": "same"
+        },
+        {
+         "text": "S",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 6,
+     "after": 7,
+     "changed": true,
+     "note": ""
+    }
+   },
+   "quiz": {
+    "question": "Step 1: does S need a new start symbol S0 above it?",
+    "answer": "yes",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "why": "S appears on a right-hand side (S → ASA), and Sipser's version forbids that."
+   }
+  },
+  {
+   "title": "Step 2 · Remove the ε-productions",
+   "explain": "Exactly Session 18's step 2: find the nullable variables, write every combination with them present or absent (never all absent), delete the ε-productions.",
+   "lines": [
+    "nullable, round 1: B (B → ε)",
+    "nullable, round 2: A (A → B)",
+    "nullable = {B, A}   (not nullable: S0, S)",
+    "S → ASA gives S → ASA | SA | AS | S   (2 nullable symbols, each kept or dropped: 2^2 = 4 combinations)",
+    "S → aB gives S → aB | a",
+    "A → B stays as it is: dropping its only symbol would create a new ε-production",
+    "B → ε is deleted",
+    "the other 3 productions have no nullable symbol and stay unchanged",
+    "S0 is not nullable, so ε ∉ L(G): the language is unchanged",
+    "careful: this step CREATED the unit production S → S. Step 3 must re-read the whole grammar"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S0",
+       "alts": [
+        {
+         "text": "S",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "same"
+        },
+        {
+         "text": "aB",
+         "status": "same"
+        },
+        {
+         "text": "SA",
+         "status": "added"
+        },
+        {
+         "text": "AS",
+         "status": "added"
+        },
+        {
+         "text": "S",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "B",
+         "status": "same"
+        },
+        {
+         "text": "S",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "removed"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 7,
+     "after": 10,
+     "changed": true,
+     "note": ""
+    }
+   }
+  },
+  {
+   "title": "Step 3 · Remove the unit productions",
+   "explain": "Exactly Session 18's step 3, on the CURRENT grammar: it includes the unit productions that steps 1 and 2 have just created.",
+   "lines": [
+    "unit productions in the current grammar: S0 → S,  S → S (created by step 2),  A → B,  A → S",
+    "chain S0 ⇒ S: S's non-unit productions are ASA | SA | AS | aB | a  →  add S0 → ASA | SA | AS | aB | a",
+    "S → S adds nothing new and simply disappears",
+    "chain A ⇒ B: B's non-unit productions are b  →  add A → b",
+    "chain A ⇒ S: S's non-unit productions are ASA | SA | AS | aB | a  →  add A → ASA | SA | AS | aB | a",
+    "then delete the unit productions themselves"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S0",
+       "alts": [
+        {
+         "text": "S",
+         "status": "removed"
+        },
+        {
+         "text": "ASA",
+         "status": "added"
+        },
+        {
+         "text": "SA",
+         "status": "added"
+        },
+        {
+         "text": "AS",
+         "status": "added"
+        },
+        {
+         "text": "aB",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "same"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "S",
+         "status": "removed"
+        },
+        {
+         "text": "aB",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "B",
+         "status": "removed"
+        },
+        {
+         "text": "S",
+         "status": "removed"
+        },
+        {
+         "text": "b",
+         "status": "added"
+        },
+        {
+         "text": "ASA",
+         "status": "added"
+        },
+        {
+         "text": "SA",
+         "status": "added"
+        },
+        {
+         "text": "AS",
+         "status": "added"
+        },
+        {
+         "text": "aB",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      }
+     ],
+     "before": 10,
+     "after": 17,
+     "changed": true,
+     "note": ""
+    }
+   }
+  },
+  {
+   "title": "Step 4a · One new variable per terminal",
+   "explain": "In every right-hand side of length ≥ 2, replace each terminal a by a new variable Ca and add Ca → a. A terminal ANYWHERE in a long right-hand side is promoted, not only a leading one.",
+   "lines": [
+    "terminals sitting inside long right-hand sides: a",
+    "add Ca → a",
+    "S0 → aB becomes S0 → Ca B",
+    "S → aB becomes S → Ca B",
+    "A → aB becomes A → Ca B",
+    "S0 → a, S → a, A → b, A → a, … keep their bare terminal: a right-hand side of length 1 is already in CNF"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S0",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "same"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "aB",
+         "status": "removed"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        },
+        {
+         "text": "Ca B",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "same"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "aB",
+         "status": "removed"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        },
+        {
+         "text": "Ca B",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "ASA",
+         "status": "same"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "aB",
+         "status": "removed"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        },
+        {
+         "text": "Ca B",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "Ca",
+       "alts": [
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      }
+     ],
+     "before": 17,
+     "after": 18,
+     "changed": true,
+     "note": ""
+    }
+   },
+   "quiz": {
+    "question": "Step 4a: what happens to S0 → a?",
+    "answer": "it stays as it is",
+    "options": [
+     "it stays as it is",
+     "S0 → Ca"
+    ],
+    "why": "A single terminal on the right is already a CNF production. Replacing it would create the unit production S0 → Ca, which step 3 just removed."
+   }
+  },
+  {
+   "title": "Step 4b · Break the right-hand sides longer than two",
+   "explain": "A → B1 B2 … Bm becomes A → B1 D1, D1 → B2 D2, …: a right-hand side of length m needs m − 2 new variables. Identical tails may share one variable.",
+   "lines": [
+    "S0 → ASA  (3 symbols)  ⇒  S0 → A D1,  D1 → SA",
+    "S → ASA  (3 symbols)  ⇒  S → A D1   (reuses D1: the tail SA is the same)",
+    "A → ASA  (3 symbols)  ⇒  A → A D1   (reuses D1: the tail SA is the same)",
+    "1 new variable: D1"
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S0",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "removed"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "Ca B",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        },
+        {
+         "text": "A D1",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "removed"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "Ca B",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        },
+        {
+         "text": "A D1",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "ASA",
+         "status": "removed"
+        },
+        {
+         "text": "SA",
+         "status": "same"
+        },
+        {
+         "text": "AS",
+         "status": "same"
+        },
+        {
+         "text": "Ca B",
+         "status": "same"
+        },
+        {
+         "text": "a",
+         "status": "same"
+        },
+        {
+         "text": "A D1",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "Ca",
+       "alts": [
+        {
+         "text": "a",
+         "status": "same"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "D1",
+       "alts": [
+        {
+         "text": "SA",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      }
+     ],
+     "before": 18,
+     "after": 19,
+     "changed": true,
+     "note": ""
+    }
+   },
+   "quiz": {
+    "question": "Step 4b: how many new variables does S0 → ASA need on its own?",
+    "answer": "1",
+    "options": [
+     "1",
+     "2",
+     "3"
+    ],
+    "why": "A right-hand side of length m needs m − 2 new variables: 3 − 2 = 1."
+   }
+  },
+  {
+   "title": "The grammar in Chomsky normal form",
+   "explain": "Write the final grammar out and run the checks: look at every production and ask whether it is two variables or one terminal. Anything else means the conversion is not finished.",
+   "lines": [
+    "S0 → A D1 | SA | AS | Ca B | a",
+    "S → A D1 | SA | AS | Ca B | a",
+    "A → b | A D1 | SA | AS | Ca B | a",
+    "B → b",
+    "Ca → a",
+    "D1 → SA",
+    "every production is A → BC or A → a ✓",
+    "the start symbol S0 appears on no right-hand side ✓",
+    "variables: 3 → 6   ·   productions: 6 → 19",
+    "L unchanged: compared on every string of length ≤ 8 (502 strings of the language) ✓",
+    "payoff: |aaa| = 3, so its derivation has exactly 2n − 1 = 5 steps: S0 ⇒ A D1 ⇒ a D1 ⇒ aSA ⇒ aaA ⇒ aaa"
+   ],
+   "table": [
+    [
+     "variable",
+     "productions"
+    ],
+    [
+     "→ S0",
+     "A D1 | SA | AS | Ca B | a"
+    ],
+    [
+     "S",
+     "A D1 | SA | AS | Ca B | a"
+    ],
+    [
+     "A",
+     "b | A D1 | SA | AS | Ca B | a"
+    ],
+    [
+     "B",
+     "b"
+    ],
+    [
+     "Ca",
+     "a"
+    ],
+    [
+     "D1",
+     "SA"
+    ]
+   ],
+   "highlight": [],
+   "extra": {
+    "diff": {
+     "rows": [
+      {
+       "lhs": "S0",
+       "alts": [
+        {
+         "text": "A D1",
+         "status": "added"
+        },
+        {
+         "text": "SA",
+         "status": "added"
+        },
+        {
+         "text": "AS",
+         "status": "added"
+        },
+        {
+         "text": "Ca B",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      },
+      {
+       "lhs": "S",
+       "alts": [
+        {
+         "text": "ASA",
+         "status": "removed"
+        },
+        {
+         "text": "aB",
+         "status": "removed"
+        },
+        {
+         "text": "A D1",
+         "status": "added"
+        },
+        {
+         "text": "SA",
+         "status": "added"
+        },
+        {
+         "text": "AS",
+         "status": "added"
+        },
+        {
+         "text": "Ca B",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "A",
+       "alts": [
+        {
+         "text": "B",
+         "status": "removed"
+        },
+        {
+         "text": "S",
+         "status": "removed"
+        },
+        {
+         "text": "b",
+         "status": "added"
+        },
+        {
+         "text": "A D1",
+         "status": "added"
+        },
+        {
+         "text": "SA",
+         "status": "added"
+        },
+        {
+         "text": "AS",
+         "status": "added"
+        },
+        {
+         "text": "Ca B",
+         "status": "added"
+        },
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "B",
+       "alts": [
+        {
+         "text": "b",
+         "status": "same"
+        },
+        {
+         "text": "ε",
+         "status": "removed"
+        }
+       ],
+       "status": "same"
+      },
+      {
+       "lhs": "Ca",
+       "alts": [
+        {
+         "text": "a",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      },
+      {
+       "lhs": "D1",
+       "alts": [
+        {
+         "text": "SA",
+         "status": "added"
+        }
+       ],
+       "status": "added"
+      }
+     ],
+     "before": 6,
+     "after": 19,
+     "changed": true,
+     "note": "compared with the original grammar"
+    },
+    "grammar": {
+     "variables": [
+      "S0",
+      "S",
+      "A",
+      "B",
+      "Ca",
+      "D1"
+     ],
+     "terminals": [
+      "a",
+      "b"
+     ],
+     "start": "S0",
+     "rules": [
+      {
+       "lhs": "S0",
+       "rhs": [
+        "A",
+        "D1"
+       ]
+      },
+      {
+       "lhs": "S0",
+       "rhs": [
+        "S",
+        "A"
+       ]
+      },
+      {
+       "lhs": "S0",
+       "rhs": [
+        "A",
+        "S"
+       ]
+      },
+      {
+       "lhs": "S0",
+       "rhs": [
+        "Ca",
+        "B"
+       ]
+      },
+      {
+       "lhs": "S0",
+       "rhs": [
+        "a"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "A",
+        "D1"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "S",
+        "A"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "A",
+        "S"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "Ca",
+        "B"
+       ]
+      },
+      {
+       "lhs": "S",
+       "rhs": [
+        "a"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "b"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "A",
+        "D1"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "S",
+        "A"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "A",
+        "S"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "Ca",
+        "B"
+       ]
+      },
+      {
+       "lhs": "A",
+       "rhs": [
+        "a"
+       ]
+      },
+      {
+       "lhs": "B",
+       "rhs": [
+        "b"
+       ]
+      },
+      {
+       "lhs": "Ca",
+       "rhs": [
+        "a"
+       ]
+      },
+      {
+       "lhs": "D1",
+       "rhs": [
+        "S",
+        "A"
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "tests": [
+  {
+   "input": "a",
+   "path": "S0 ⇒ a",
+   "accepted": true
+  },
+  {
+   "input": "aa",
+   "path": "S0 ⇒ SA ⇒ aA ⇒ aa",
+   "accepted": true
+  },
+  {
+   "input": "ab",
+   "path": "S0 ⇒ SA ⇒ aA ⇒ ab",
+   "accepted": true
+  },
+  {
+   "input": "aaaa",
+   "path": "S0 ⇒ A D1 ⇒ a D1 ⇒ aSA ⇒ aaA ⇒ aaSA ⇒ aaaA ⇒ aaaa",
+   "accepted": true
+  },
+  {
+   "input": "",
+   "path": "no derivation tree has this yield",
+   "accepted": false
+  },
+  {
+   "input": "b",
+   "path": "no derivation tree has this yield",
+   "accepted": false
+  }
+ ],
+ "test_labels": [
+  "generated",
+  "not generated"
+ ],
+ "language": "All strings over {a,b} that contain at least one a.",
+ "conclusion": "Chomsky normal form (Sipser's version): 6 variables and 19 productions, every one A → BC or A → a. The language is unchanged (checked up to length 8). A string of length n now takes exactly 2n − 1 steps."
+}

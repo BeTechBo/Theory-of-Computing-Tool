@@ -31,3 +31,4 @@ async function post(body) {
 export const analyze = payload => post({ task: 'analyze', ...payload });
 export const explain = payload => post({ task: 'explain', ...payload });
 export const readAttempt = payload => post({ task: 'check', ...payload });
+export const explainSubject = payload => post({ task: 'explain_subject', ...payload });

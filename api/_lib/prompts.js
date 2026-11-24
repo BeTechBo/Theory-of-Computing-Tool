@@ -48,7 +48,12 @@ Return ONLY one JSON object:
   "follow_ups": ["2 or 3 short questions the student could naturally ask next"],
   "method": "table" | "partition" | "both" | null,
   "design": null or {"description": "L in one plain sentence", "alphabet": ["a","b"], "states": [{"name": "q0", "fact": "a fact about the whole input read so far"}], "start": "q0", "final": ["..."], "delta": {"q0": {"a": "q1", "b": "q0"}}, "reasons": {"q0": {"a": "why this arrow keeps the facts true"}}, "regex": "a regex for L using | * + ( ) ε ∅ and the symbols of Σ"},
-  "transducer": null or {"type": "moore" | "mealy", "states": [...], "alphabet": [...], "start": "q0", "delta": {"q0": {"a": "q1"}}, "out": moore: {"q0": "0"} | mealy: {"q0": {"a": "0"}}}
+  "transducer": null or {"type": "moore" | "mealy", "states": [...], "alphabet": [...], "start": "q0", "delta": {"q0": {"a": "q1"}}, "out": moore: {"q0": "0"} | mealy: {"q0": {"a": "0"}}},
+  "grammar": null or {"start": "S", "rules": ["S → aSb | ε", "A → aA | a"]},
+  "pda": null or {"start": "q0", "bottom": "Z", "final": ["q2"], "accept": "final" | "empty", "transitions": ["δ(q0, a, Z) = (q0, XZ)", "δ(q1, ε, Z) = (q2, Z)"]},
+  "cf_method": "cnf" | "gnf" | null,
+  "cf_design": null or {"description": "L in one plain sentence", "facts": [{"item": "S", "meaning": "what this variable generates, or what this state / stack symbol means"}], "members": ["4 to 6 short strings IN L"], "non_members": ["3 to 5 short strings NOT in L"]},
+  "repair": null or {"rules": ["E → E+T | T", "T → T×F | F", "F → a"]}
 }
 
 Rules:
@@ -62,6 +67,12 @@ Rules:
 - "unsupported": put the kind redirect in "reply".
 - The student may attach pictures: a hand-drawn or printed state diagram, a transition table, or a photo/screenshot of an exam question. In a diagram, the state with an arrow coming from nowhere is the start state, double circles are accepting states, and an arrow labelled "a,b" means one transition per symbol.
 - Students type symbols loosely: "e", "eps", "epsilon" or "lambda" mean ε; "phi", "empty" or "{}" mean ∅; "->" or ">" marks the start state; "*" or "(final)" marks accepting states.
+- Grammars and pushdown automata (S17–S21) are solved by code too. When the message contains a context-free grammar (typed, described or in a picture): intent "solve", "machine" null, and copy the productions EXACTLY into "grammar" (one string per variable, alternatives separated by |, ε for the empty string; variables are capital letters, terminals are single lowercase letters, digits or symbols). Choose the technique: "cfg" (the four-tuple, the type, deriving a string, a derivation tree), "ambiguity" (is it ambiguous, two trees, repair), "simplification" (useless symbols, ε-productions, unit productions), "cnf_gnf" (set "cf_method" to "cnf" or "gnf"), "cfg_to_pda" (build the PDA from the grammar). Strings to derive or run go in "strings".
+- When the message contains a PDA: technique "pda", and copy every transition EXACTLY into "pda".transitions as "δ(state, input symbol or ε, top of stack) = (new state, string to push)", the pushed string written top first and ε for a pop. Fill "start", "bottom" (the initial stack symbol), "final", and "accept" ("final" or "empty").
+- "Write / design a grammar for <language>": technique "cfg", put YOUR grammar in "grammar" and fill "cf_design" (facts = what each variable generates). "Design a PDA for <language>": technique "pda", put YOUR machine in "pda" and fill "cf_design" (facts = what each state and each stack symbol means). Follow the course recipes in the notes. Code tests your design on every member and non-member you list, so keep them short and be sure of each one.
+- For "ambiguity" you may also put an unambiguous grammar for the same language in "repair" (code verifies it); otherwise leave it null.
+- If the "Current machine" starts with "(a context-free grammar)" or "(a pushdown automaton)", the student is talking about that object. For a new task on it, set the technique and leave "grammar" / "pda" null: code reuses the one in the chat.
+- For questions about grammars or PDAs, leave "examples" empty (the example drawings are finite automata only) and explain with a tiny grammar or a short trace written inside "explain".
 - If a "Selected technique" is given, prefer it. If a "Current machine" is given, the student may be asking about it (e.g. "test abba" or "why is ∅ a state?"): use it in your answer and examples.
 `.trim();
 
@@ -79,6 +90,22 @@ Return ONLY one JSON object:
 - One fact per state, in the order given. A dead state (∅ or one that can never accept) gets a fact like "every path has died; nothing can be accepted any more".
 - The language sentence must agree with the accepted/rejected lists.
 Example fact: {"item": "{m0,m1}", "meaning": "an a has been seen, but no b has followed it yet"}
+`.trim();
+
+export const EXPLAIN_SUBJECT = `
+You write the parts of a solved CSCE 4201 exercise on grammars or pushdown automata that code cannot compute.
+${STYLE}
+
+You get a context-free grammar (its productions) or a PDA (its transitions), the names to describe, and strings that are in / not in the language (computed by code, always correct).
+Return ONLY one JSON object:
+{
+  "facts": [{"item": "<name copied exactly>", "meaning": "<what it stands for>"}],
+  "language": "<one plain sentence describing the language, with set notation if it helps>"
+}
+- For a grammar: one fact per variable, saying which set of terminal strings it generates ("exactly the strings with one more a than b"). Describe the strings, never the productions.
+- For a PDA: one fact per state (what is true of the input read so far when the machine is in it) and one per stack symbol (what one copy of it on the stack stands for). For the bottom marker, say what it means when it is on top.
+- The language sentence must agree with the lists of strings. If you are not sure of a meaning, describe the shortest strings instead of guessing.
+Example fact: {"item": "B", "meaning": "one b followed by any run of a's (ba*)"}
 `.trim();
 
 export const CHECK = `

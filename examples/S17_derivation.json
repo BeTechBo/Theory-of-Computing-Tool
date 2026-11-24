@@ -1,0 +1,411 @@
+{
+ "technique": "cfg",
+ "session": "S17",
+ "input_summary": "Grammar with 9 productions over {a, b}, start S",
+ "facts": [
+  {
+   "item": "S",
+   "meaning": "exactly the strings with as many a’s as b’s"
+  },
+  {
+   "item": "A",
+   "meaning": "exactly the strings with one more a than b"
+  },
+  {
+   "item": "B",
+   "meaning": "exactly the strings with one more b than a"
+  }
+ ],
+ "facts_title": "What each variable generates",
+ "formal": "G = ({S, A, B}, {a, b}, P, S)",
+ "steps": [
+  {
+   "title": "The grammar G = (V, T, P, S)",
+   "explain": "A grammar generates strings: start from S and rewrite until only terminals are left. Give all four parts: a list of productions alone is not a grammar.",
+   "lines": [
+    "G = ({S, A, B}, {a, b}, P, S)",
+    "V = {S, A, B}  (variables)",
+    "T = {a, b}  (terminals)",
+    "S = S  (start symbol)",
+    "P has 9 productions: S → aB | bA | ε   A → aS | bAA | a   B → bS | aBB | b"
+   ],
+   "table": [
+    [
+     "#",
+     "production"
+    ],
+    [
+     "P1",
+     "S → aB"
+    ],
+    [
+     "P2",
+     "S → bA"
+    ],
+    [
+     "P3",
+     "S → ε"
+    ],
+    [
+     "P4",
+     "A → aS"
+    ],
+    [
+     "P5",
+     "A → bAA"
+    ],
+    [
+     "P6",
+     "A → a"
+    ],
+    [
+     "P7",
+     "B → bS"
+    ],
+    [
+     "P8",
+     "B → aBB"
+    ],
+    [
+     "P9",
+     "B → b"
+    ]
+   ],
+   "highlight": [],
+   "extra": {}
+  },
+  {
+   "title": "What type of grammar is it?",
+   "explain": "The type is decided by the SHAPE of the productions and nothing else. A Type 3 grammar must be ALL right-linear or ALL left-linear.",
+   "lines": [
+    "S → aB : one variable, at the RIGHT end → right-linear",
+    "S → bA : one variable, at the RIGHT end → right-linear",
+    "S → ε : terminals only (fits right- and left-linear)",
+    "A → aS : one variable, at the RIGHT end → right-linear",
+    "A → bAA : two or more variables → context-free only",
+    "A → a : terminals only (fits right- and left-linear)",
+    "B → bS : one variable, at the RIGHT end → right-linear",
+    "B → aBB : two or more variables → context-free only",
+    "B → b : terminals only (fits right- and left-linear)",
+    "Type 2 (context-free) and not Type 3: A → bAA has two or more variables on the right.",
+    "careful: this is the type of the GRAMMAR. Whether the LANGUAGE is regular is a separate question (a Type 2 grammar can generate a regular language)"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "What is the most restrictive Chomsky type this grammar satisfies?",
+    "answer": "Type 2 (context-free)",
+    "options": [
+     "Type 3 (regular)",
+     "Type 2 (context-free)"
+    ],
+    "why": "A → bAA has two or more variables on the right."
+   },
+   "extra": {}
+  },
+  {
+   "title": "What each variable generates",
+   "explain": "Before deriving anything, say what each variable stands for: the set of terminal strings it can turn into. These are the grammar's \"facts\", and the grammar is correct exactly when they are.",
+   "lines": [
+    "S: exactly the strings with as many a’s as b’s",
+    "A: exactly the strings with one more a than b",
+    "B: exactly the strings with one more b than a"
+   ],
+   "table": [
+    [
+     "variable",
+     "generates"
+    ],
+    [
+     "S",
+     "exactly the strings with as many a’s as b’s"
+    ],
+    [
+     "A",
+     "exactly the strings with one more a than b"
+    ],
+    [
+     "B",
+     "exactly the strings with one more b than a"
+    ]
+   ],
+   "highlight": [],
+   "extra": {}
+  },
+  {
+   "title": "Derive \"abba\" · step 1 of 4: S → aB",
+   "explain": "The leftmost variable of S is S. Replace it by aB. In the tree, S gets 2 children, in the same left-to-right order.",
+   "lines": [
+    "S",
+    "⇒ aB        using S → aB"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "S: which production of S comes next, to reach abba?",
+    "answer": "S → aB",
+    "options": [
+     "S → aB",
+     "S → bA",
+     "S → ε"
+    ],
+    "why": "It gives aB, which can still become abba."
+   },
+   "extra": {
+    "tree": {
+     "label": "S",
+     "kind": "var",
+     "fresh": false,
+     "active": true,
+     "children": [
+      {
+       "label": "a",
+       "kind": "term",
+       "fresh": true
+      },
+      {
+       "label": "B",
+       "kind": "var",
+       "pending": true,
+       "fresh": true
+      }
+     ]
+    },
+    "tree_caption": "sentential form: aB"
+   }
+  },
+  {
+   "title": "Derive \"abba\" · step 2 of 4: B → bS",
+   "explain": "The leftmost variable of aB is B. Replace it by bS. In the tree, B gets 2 children, in the same left-to-right order.",
+   "lines": [
+    "S",
+    "⇒ aB        using S → aB",
+    "⇒ abS        using B → bS"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "aB: which production of B comes next, to reach abba?",
+    "answer": "B → bS",
+    "options": [
+     "B → bS",
+     "B → aBB",
+     "B → b"
+    ],
+    "why": "It gives abS, which can still become abba."
+   },
+   "extra": {
+    "tree": {
+     "label": "S",
+     "kind": "var",
+     "fresh": false,
+     "active": false,
+     "children": [
+      {
+       "label": "a",
+       "kind": "term",
+       "fresh": false
+      },
+      {
+       "label": "B",
+       "kind": "var",
+       "fresh": false,
+       "active": true,
+       "children": [
+        {
+         "label": "b",
+         "kind": "term",
+         "fresh": true
+        },
+        {
+         "label": "S",
+         "kind": "var",
+         "pending": true,
+         "fresh": true
+        }
+       ]
+      }
+     ]
+    },
+    "tree_caption": "sentential form: abS"
+   }
+  },
+  {
+   "title": "Derive \"abba\" · step 3 of 4: S → bA",
+   "explain": "The leftmost variable of abS is S. Replace it by bA. In the tree, S gets 2 children, in the same left-to-right order.",
+   "lines": [
+    "S",
+    "⇒ aB        using S → aB",
+    "⇒ abS        using B → bS",
+    "⇒ abbA        using S → bA"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "abS: which production of S comes next, to reach abba?",
+    "answer": "S → bA",
+    "options": [
+     "S → aB",
+     "S → bA",
+     "S → ε"
+    ],
+    "why": "It gives abbA, which can still become abba."
+   },
+   "extra": {
+    "tree": {
+     "label": "S",
+     "kind": "var",
+     "fresh": false,
+     "active": false,
+     "children": [
+      {
+       "label": "a",
+       "kind": "term",
+       "fresh": false
+      },
+      {
+       "label": "B",
+       "kind": "var",
+       "fresh": false,
+       "active": false,
+       "children": [
+        {
+         "label": "b",
+         "kind": "term",
+         "fresh": false
+        },
+        {
+         "label": "S",
+         "kind": "var",
+         "fresh": false,
+         "active": true,
+         "children": [
+          {
+           "label": "b",
+           "kind": "term",
+           "fresh": true
+          },
+          {
+           "label": "A",
+           "kind": "var",
+           "pending": true,
+           "fresh": true
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "tree_caption": "sentential form: abbA"
+   }
+  },
+  {
+   "title": "Derive \"abba\" · step 4 of 4: A → a",
+   "explain": "The leftmost variable of abbA is A. Replace it by a. In the tree, A gets 1 child, in the same left-to-right order.",
+   "lines": [
+    "S",
+    "⇒ aB        using S → aB",
+    "⇒ abS        using B → bS",
+    "⇒ abbA        using S → bA",
+    "⇒ abba        using A → a",
+    "4 steps, 4 named productions: abba ∈ L(G) ✓"
+   ],
+   "highlight": [],
+   "quiz": {
+    "question": "abbA: which production of A comes next, to reach abba?",
+    "answer": "A → a",
+    "options": [
+     "A → aS",
+     "A → bAA",
+     "A → a"
+    ],
+    "why": "It gives abba, which can still become abba."
+   },
+   "extra": {
+    "tree": {
+     "label": "S",
+     "kind": "var",
+     "fresh": false,
+     "active": false,
+     "children": [
+      {
+       "label": "a",
+       "kind": "term",
+       "fresh": false
+      },
+      {
+       "label": "B",
+       "kind": "var",
+       "fresh": false,
+       "active": false,
+       "children": [
+        {
+         "label": "b",
+         "kind": "term",
+         "fresh": false
+        },
+        {
+         "label": "S",
+         "kind": "var",
+         "fresh": false,
+         "active": false,
+         "children": [
+          {
+           "label": "b",
+           "kind": "term",
+           "fresh": false
+          },
+          {
+           "label": "A",
+           "kind": "var",
+           "fresh": false,
+           "active": true,
+           "children": [
+            {
+             "label": "a",
+             "kind": "term",
+             "fresh": true
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "tree_caption": "yield (leaves, left to right): abba"
+   }
+  }
+ ],
+ "tests": [
+  {
+   "input": "abba",
+   "path": "S ⇒ aB ⇒ abS ⇒ abbA ⇒ abba",
+   "accepted": true
+  },
+  {
+   "input": "",
+   "path": "S ⇒ ε",
+   "accepted": true
+  },
+  {
+   "input": "ab",
+   "path": "S ⇒ aB ⇒ ab",
+   "accepted": true
+  },
+  {
+   "input": "a",
+   "path": "no derivation tree has this yield",
+   "accepted": false
+  },
+  {
+   "input": "b",
+   "path": "no derivation tree has this yield",
+   "accepted": false
+  }
+ ],
+ "test_labels": [
+  "generated",
+  "not generated"
+ ],
+ "language": "EQUAL = { w ∈ {a,b}* : #a(w) = #b(w) }: every string with equally many a’s and b’s, in any order.",
+ "conclusion": "A Type 2 (context-free) grammar. In L(G): abba, ε, ab. Not in L(G): a, b."
+}
