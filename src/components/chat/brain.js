@@ -149,8 +149,10 @@ export function solveWith(technique, machine, strings = [], notes = {}) {
   else return { msg: bot("I can't do that one yet 🛠️. Send me a table and tell me what to do with it.", { mood: 'sad' }), machine };
 
   const finalMachine = [...solution.steps].reverse().find(s => s.extra?.machine)?.extra.machine || machine;
-  if (['subset_construction', 'eps_removal'].includes(technique) || technique.startsWith('min')) keep = finalMachine;
-  return { msg: solutionMessage(technique, solution, selfCheck(solution, machine), finalMachine, !notes.facts), machine: keep };
+  if (['subset_construction', 'eps_removal', 'thompson', 'product'].includes(technique) || technique.startsWith('min')) keep = finalMachine;
+  const isEquivalencePreserving = ['subset_construction', 'eps_removal'].includes(technique) || technique.startsWith('min');
+  const checkInput = isEquivalencePreserving ? machine : null;
+  return { msg: solutionMessage(technique, solution, selfCheck(solution, checkInput), finalMachine, !notes.facts), machine: keep };
 }
 
 function solutionMessage(technique, solution, checks, finalMachine, explainable) {
@@ -255,29 +257,50 @@ async function respondAutomata({ text, images = [], machine, llmOn, history, pra
     }
   }
 
-  // 3. A command about the machine we already have
-  if (machine) {
-    const cmd = trimmed.match(TEST_CMD);
-    if (cmd && cmd[2].trim().length < 200 && !/[?]/.test(cmd[2])) {
-      const ss = parseStrings(cmd[2]);
-      const syms = machine.alphabet.filter(a => a !== EPS);
-      // Only a real trace command if every word is made of the machine's symbols ("test ab, ba"),
-      // so "check this nfa please" goes to the AI instead.
-      if (ss.length && ss.every(w => [...w].every(ch => syms.includes(ch)))) {
-        try {
-          return { msgs: [solveWith('dfa_trace', machine, ss).msg] };
-        } catch (e) {
-          return { msgs: [bot(e.message, { mood: 'sad' })] };
-        }
+  // 3. A test command or a command about the active machine
+  const cmd = trimmed.match(TEST_CMD);
+  if (cmd && cmd[2].trim().length < 200 && !/[?]/.test(cmd[2])) {
+    const ss = parseStrings(cmd[2]);
+    if (!machine) {
+      return {
+        msgs: [
+          bot(
+            "There's no active machine in this chat yet to test those strings on!\n\nFirst provide an automaton (for example, type `thompson: (0|1)*10` or paste an FA table), then you can test strings with `test <strings>`.",
+            { mood: 'thinking' }
+          )
+        ]
+      };
+    }
+    const syms = machine.alphabet.filter(a => a !== EPS);
+    const badChars = [...new Set(ss.flatMap(w => [...w]).filter(ch => !syms.includes(ch)))];
+    if (badChars.length) {
+      return {
+        msgs: [
+          bot(
+            `This machine's alphabet is Σ = {${syms.join(', ')}}, but your test string contains '${badChars.join("', '")}'.\n\nTry testing strings made of {${syms.join(', ')}}, e.g. \`test ${syms[0] || 'a'}${syms[1] || 'b'}, ${syms[0] || 'a'}\`.`,
+            { mood: 'thinking' }
+          )
+        ],
+        machine
+      };
+    }
+    if (ss.length) {
+      try {
+        return { msgs: [solveWith('dfa_trace', machine, ss).msg], machine };
+      } catch (e) {
+        return { msgs: [bot(e.message, { mood: 'sad' })], machine };
       }
     }
+  }
+
+  if (machine) {
     const asked = trimmed.length < 120 && !/\?\s*$/.test(trimmed) ? techniqueFromWords(trimmed) : null;
     if (asked && asked !== 'dfa_trace') {
       try {
         const { msg, machine: kept } = solveWith(pickTechnique(trimmed, machine, []), machine, []);
         return { msgs: [msg], machine: kept };
       } catch (e) {
-        return { msgs: [bot(e.message, { mood: 'sad' })] };
+        return { msgs: [bot(e.message, { mood: 'sad' })], machine };
       }
     }
   }
@@ -287,7 +310,8 @@ async function respondAutomata({ text, images = [], machine, llmOn, history, pra
   if (thMatch) {
     try {
       const sol = solveThompson(thMatch[1].trim());
-      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), null, false)] };
+      const finalM = [...sol.steps].reverse().find(s => s.extra?.machine)?.extra.machine || null;
+      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), finalM, false)], machine: finalM };
     } catch (e) {
       return { msgs: [bot(`Thompson construction error: ${e.message}`, { mood: 'sad' })] };
     }
@@ -437,7 +461,8 @@ function practiceMessage(text, current) {
   // Topic buttons send their label (e.g. "NFA → DFA"), so match labels first.
   const byLabel = PRACTICE_TOPICS.find(t => text.toLowerCase().includes(t.label.toLowerCase()));
   const words = byLabel ? (byLabel.technique === 'min_both' ? 'min_both' : byLabel.technique) : techniqueFromWords(text) || '';
-  let topic = /moore|mealy|output/i.test(text) ? 'moore_mealy' : words.startsWith('min') ? 'min_both' : words.startsWith('eps') ? 'eps_removal' : words === 'subset_construction' || words === 'dfa_trace' ? words : null;
+  const supported = new Set(['moore_mealy', 'subset_construction', 'dfa_trace', 'thompson', 'state_elimination', 'pumping']);
+  let topic = /moore|mealy|output/i.test(text) ? 'moore_mealy' : words.startsWith('min') ? 'min_both' : words.startsWith('eps') ? 'eps_removal' : supported.has(words) ? words : null;
   if (!topic && /^\s*(another|one more)/i.test(text) && current) topic = current.technique;
   if (!topic) {
     return {
@@ -469,10 +494,13 @@ function solvePractice(p) {
       const regMatch = p.task.match(/\*\*`([^`]+)`\*\*/);
       const reg = regMatch ? regMatch[1] : '(a|b)*abb';
       const sol = solveThompson(reg);
-      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), null, false)] };
+      const finalM = [...sol.steps].reverse().find(s => s.extra?.machine)?.extra.machine || null;
+      return { msgs: [solutionMessage('thompson', sol, selfCheck(sol, null), finalM, false)], machine: finalM };
     }
     if (p.technique === 'pumping') {
-      const sol = solvePumpingLemma('0ⁿ1ⁿ');
+      const langMatch = p.task.match(/Prove that \*\*([^*]+)\*\*/);
+      const key = langMatch ? langMatch[1] : '0ⁿ1ⁿ';
+      const sol = solvePumpingLemma(key);
       return { msgs: [solutionMessage('pumping', sol, selfCheck(sol, null), null, false)] };
     }
     if (p.technique === 'state_elimination') {

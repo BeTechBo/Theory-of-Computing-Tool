@@ -54,10 +54,31 @@ export const PUMPING_PRESETS = {
   }
 };
 
+function resolvePumpingKey(input) {
+  const raw = String(input || '').trim();
+  const exact = Object.keys(PUMPING_PRESETS).find(
+    k => k.toLowerCase() === raw.toLowerCase() || raw.includes(k)
+  );
+  if (exact) return exact;
+
+  // Normalize ASCII (^, spaces, braces) and Unicode superscripts for fuzzy matching
+  const flat = raw
+    .toLowerCase()
+    .replace(/ⁿ/g, 'n')
+    .replace(/²/g, '2')
+    .replace(/ⁱ/g, 'i')
+    .replace(/ʲ/g, 'j')
+    .replace(/[\s^{}()]/g, '');
+
+  if (flat.includes('1n2') || flat.includes('square')) return '1ⁿ²';
+  if (flat.includes('b2n') || flat.includes('twice')) return 'aⁿb²ⁿ';
+  if (flat.includes('0i1j') || flat.includes('i>j')) return '0ⁱ1ʲ (i > j)';
+  if (flat.includes('ww') || flat.includes('duplic')) return 'ww';
+  return '0ⁿ1ⁿ';
+}
+
 export function solvePumpingLemma(languageKey = '0ⁿ1ⁿ') {
-  const normKey = Object.keys(PUMPING_PRESETS).find(
-    k => k.toLowerCase() === String(languageKey).toLowerCase() || languageKey.includes(k)
-  ) || '0ⁿ1ⁿ';
+  const normKey = resolvePumpingKey(languageKey);
 
   const pset = PUMPING_PRESETS[normKey];
   const steps = [];

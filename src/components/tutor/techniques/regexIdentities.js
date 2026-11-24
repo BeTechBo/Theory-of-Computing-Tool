@@ -6,8 +6,11 @@ import { EPS, EMPTY } from '../machine.js';
 // Convert a basic regex string into a JS RegExp for testing
 function toJsRegex(expr) {
   let s = String(expr || '').trim();
-  s = s.replace(/ε/g, '').replace(/∅/g, '(?!)');
-  return new RegExp(`^(${s})$`);
+  s = s.replace(/\s+/g, '')
+    .replace(/∪/g, '|')
+    .replace(/[ελ]/g, '(?:)')
+    .replace(/∅/g, '[^\\s\\S]');
+  return new RegExp(`^(?:${s})$`);
 }
 
 function testMatch(re, w) {
@@ -56,12 +59,12 @@ export function solveRegexIdentities(r1Str, r2Str, testStrings = []) {
   for (const w of candidates) {
     const in1 = testMatch(re1, w);
     const in2 = testMatch(re2, w);
-    if (in1 && !in2 && !witness1) witness1 = w;
-    if (!in1 && in2 && !witness2) witness2 = w;
-    if (witness1 && witness2) break;
+    if (in1 && !in2 && witness1 === null) witness1 = w;
+    if (!in1 && in2 && witness2 === null) witness2 = w;
+    if (witness1 !== null && witness2 !== null) break;
   }
 
-  const isEquivalent = !witness1 && !witness2;
+  const isEquivalent = witness1 === null && witness2 === null;
 
   // Step 1: Formal setup
   steps.push({
@@ -131,8 +134,20 @@ export function solveRegexIdentities(r1Str, r2Str, testStrings = []) {
     });
   }
 
-  // Tests
-  const sampleWords = testStrings.length ? testStrings : candidates.slice(0, 6);
+  // Tests: pick a balanced mix including accepted, rejected, and any counterexample witness
+  let sampleWords;
+  if (testStrings.length) {
+    sampleWords = testStrings;
+  } else {
+    const bothAcc = candidates.filter(w => testMatch(re1, w) && testMatch(re2, w));
+    const notBoth = candidates.filter(w => !(testMatch(re1, w) && testMatch(re2, w)));
+    const witness = witness1 !== null ? witness1 : witness2;
+    const set = new Set();
+    if (witness !== null) set.add(witness);
+    bothAcc.slice(0, 3).forEach(w => set.add(w));
+    notBoth.slice(0, 3).forEach(w => set.add(w));
+    sampleWords = [...set].slice(0, 6);
+  }
   const tests = sampleWords.map(w => {
     const in1 = testMatch(re1, w);
     const in2 = testMatch(re2, w);

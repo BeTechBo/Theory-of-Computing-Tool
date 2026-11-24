@@ -1,7 +1,7 @@
 // S10 · FA → Regex via GNFA State Elimination and Arden's Lemma
 // Systematically eliminates states to derive the regular expression.
 
-import { EPS, EMPTY, accepts, stringsUpTo, setName } from '../machine.js';
+import { EPS, EMPTY, accepts, stringsUpTo, setName, pickTests } from '../machine.js';
 
 // Regex string helpers for GNFA labels
 function simplifyUnion(a, b) {
@@ -191,8 +191,8 @@ export function solveStateElimination(m, preferredOrder = null) {
     extra: {}
   });
 
-  // Test strings
-  const testWords = stringsUpTo(m.alphabet, 3).slice(0, 5);
+  // Test strings: use pickTests to ensure balanced accepted and rejected strings
+  const testWords = pickTests(m);
   const tests = testWords.map(w => {
     const ok = accepts(m, w);
     return {
