@@ -75,7 +75,7 @@ export default function ChatApp() {
   }, [chats]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    scrollRef.current?.scrollTo({ top: chat.messages.length ? scrollRef.current.scrollHeight : 0, behavior: 'smooth' }); // the welcome screen opens at its top; a conversation follows its newest message
   }, [chat.messages.length, busy]);
 
   const updateChat = (id, fn) => setChats(cs => cs.map(c => (c.id === id ? fn(c) : c)));
@@ -397,7 +397,7 @@ function Welcome({ onPick }) {
           <span className="bg-amber-100 rounded-md px-1">the way your exam marks it</span>.
         </p>
       </div>
-      <div className="relative grid sm:grid-cols-2 gap-3 mt-8 w-full max-w-2xl">
+      <div className="relative grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-8 w-full max-w-2xl xl:max-w-5xl">
         {SUGGESTIONS.map(s => (
           <button
             key={s.title}
